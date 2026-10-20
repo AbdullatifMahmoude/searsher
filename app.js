@@ -19,6 +19,7 @@ const PIN_SESSION_KEY = 'payroll_session_unlocked';
 const PIN_REMOTE_ACTIVE_KEY = 'payroll_remote_pin_active';
 const HISTORY_KEY = 'payroll_history_log_v1';
 const WEBHOOK_KEY = 'payroll_apps_script_url';
+const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw9irhipR-7qr6jTKkpRSMzzWGZvscZoJ-JwVbDSyVHg8x6CUIMteOJeR4D9_TenrszGA/exec';
 
 // ========================
 // Application State
@@ -87,6 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initPrivacyMode();
   initFavorites();
+  if (!localStorage.getItem(WEBHOOK_KEY)) {
+    localStorage.setItem(WEBHOOK_KEY, DEFAULT_WEBHOOK_URL);
+  }
   initPinLock();
   fetchSettingsFromGoogleSheet();
   setupEventListeners();
@@ -1536,7 +1540,7 @@ function openPinSetupModal() {
 function openSecurityModal() {
   closeMenuDropdown();
   const input = document.getElementById('securityWebhookInput');
-  if (input) input.value = localStorage.getItem(WEBHOOK_KEY) || '';
+  if (input) input.value = localStorage.getItem(WEBHOOK_KEY) || DEFAULT_WEBHOOK_URL;
   updateSecurityStatusUI();
   const modal = document.getElementById('securityModal');
   if (modal) {
@@ -1602,7 +1606,7 @@ function saveSecuritySettings() {
 }
 
 async function syncSettingsToSheet(action, payload) {
-  const webhookUrl = localStorage.getItem(WEBHOOK_KEY);
+  const webhookUrl = localStorage.getItem(WEBHOOK_KEY) || DEFAULT_WEBHOOK_URL;
   if (!webhookUrl) return;
 
   try {
