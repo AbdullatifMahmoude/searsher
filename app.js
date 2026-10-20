@@ -179,12 +179,16 @@ function updateFavoritePill(id) {
   if (!btn || !id) return;
   const isFav = favorites.includes(id);
   if (isFav) {
-    icon.innerText = '⭐';
-    text.innerText = 'مثبت بالمفضلة';
-    btn.style.color = '#eab308';
+    icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+    text.innerText = 'مثبت بالمفضلة ⭐';
+    btn.classList.add('active');
+    btn.style.borderColor = '#f59e0b';
+    btn.style.color = '#f59e0b';
   } else {
-    icon.innerText = '☆';
+    icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
     text.innerText = 'إضافة للمفضلة';
+    btn.classList.remove('active');
+    btn.style.borderColor = '';
     btn.style.color = '';
   }
 }
@@ -503,8 +507,10 @@ function renderCards() {
   filtered.forEach(item => {
     const highlightedName = highlightText(item.name, searchQuery);
     const isFav = favorites.includes(item.id);
-    const starIcon = isFav ? '⭐' : '☆';
     const starClass = isFav ? 'fav-star-btn active' : 'fav-star-btn';
+    const starSvg = isFav
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
 
     // Mask salary if privacy mode is on
     const salaryDisplay = isPrivacyMasked 
@@ -522,8 +528,8 @@ function renderCards() {
         </div>
 
         <div class="card-trailing">
-          <button class="${starClass}" title="تثبيت في المفضلة" onclick="toggleFavorite(${item.id}, event)">
-            ${starIcon}
+          <button class="${starClass}" title="${isFav ? 'إزالة من المفضلة' : 'تثبيت في المفضلة'}" onclick="toggleFavorite(${item.id}, event)" aria-label="Toggle Favorite">
+            ${starSvg}
           </button>
           <div class="card-salary-block">
             <span class="card-salary-num">${salaryDisplay}</span>
@@ -816,12 +822,25 @@ function applySimulationToData() {
 }
 
 // ========================
-// Comparison Tool
+// Comparison Tool (Live Autocomplete Search)
 // ========================
+let compareId1 = null;
+let compareId2 = null;
+
 function openCompareModal() {
   closeMenuDropdown();
-  populateCompareDropdowns();
+  
+  if (employees.length >= 2) {
+    if (!compareId1) compareId1 = employees[0].id;
+    if (!compareId2) compareId2 = employees[1].id;
+  } else if (employees.length === 1) {
+    if (!compareId1) compareId1 = employees[0].id;
+  }
+
+  setupCompareSearchListeners();
+  syncCompareInputsFromIds();
   updateComparison();
+
   document.getElementById('compareModal').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
@@ -829,34 +848,175 @@ function openCompareModal() {
 function closeCompareModal() {
   document.getElementById('compareModal').classList.remove('active');
   document.body.style.overflow = '';
+  hideAllCompSuggestions();
 }
 
-function populateCompareDropdowns() {
-  const s1 = document.getElementById('compareSelect1');
-  const s2 = document.getElementById('compareSelect2');
-  if (!s1 || !s2) return;
+function syncCompareInputsFromIds() {
+  const p1 = employees.find(e => e.id === compareId1);
+  const p2 = employees.find(e => e.id === compareId2);
 
-  let opts = '';
-  employees.forEach((item, i) => {
-    opts += `<option value="${item.id}">${item.name} (${item.job})</option>`;
-  });
-  s1.innerHTML = opts;
-  s2.innerHTML = opts;
+  const input1 = document.getElementById('compSearch1');
+  const input2 = document.getElementById('compSearch2');
+  const clear1 = document.getElementById('compClear1');
+  const clear2 = document.getElementById('compClear2');
+  const badge1 = document.getElementById('compSelectedBadge1');
+  const badge2 = document.getElementById('compSelectedBadge2');
 
-  if (employees.length >= 2) {
-    s1.value = employees[0].id;
-    s2.value = employees[1].id;
+  if (p1 && input1) {
+    input1.value = p1.name;
+    if (clear1) clear1.classList.add('active');
+    if (badge1) {
+      badge1.innerHTML = `<span>✓ تم اختيار: ${escapeHtml(p1.name)} (${escapeHtml(p1.job)})</span>`;
+      badge1.classList.add('active');
+    }
+  }
+
+  if (p2 && input2) {
+    input2.value = p2.name;
+    if (clear2) clear2.classList.add('active');
+    if (badge2) {
+      badge2.innerHTML = `<span>✓ تم اختيار: ${escapeHtml(p2.name)} (${escapeHtml(p2.job)})</span>`;
+      badge2.classList.add('active');
+    }
   }
 }
 
-function updateComparison() {
-  const id1 = parseInt(document.getElementById('compareSelect1').value, 10);
-  const id2 = parseInt(document.getElementById('compareSelect2').value, 10);
-  const p1 = employees.find(e => e.id === id1);
-  const p2 = employees.find(e => e.id === id2);
-  const container = document.getElementById('compareResultsWrap');
+function setupCompareSearchListeners() {
+  const input1 = document.getElementById('compSearch1');
+  const input2 = document.getElementById('compSearch2');
 
-  if (!p1 || !p2 || !container) return;
+  if (input1 && !input1._hasListener) {
+    input1.addEventListener('input', () => handleCompInput(1));
+    input1.addEventListener('focus', () => handleCompInput(1));
+    input1._hasListener = true;
+  }
+
+  if (input2 && !input2._hasListener) {
+    input2.addEventListener('input', () => handleCompInput(2));
+    input2.addEventListener('focus', () => handleCompInput(2));
+    input2._hasListener = true;
+  }
+
+  // Close suggestions if clicked outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.comp-col')) {
+      hideAllCompSuggestions();
+    }
+  });
+}
+
+function handleCompInput(memberIndex) {
+  const input = document.getElementById(`compSearch${memberIndex}`);
+  const suggContainer = document.getElementById(`compSuggestions${memberIndex}`);
+  const clearBtn = document.getElementById(`compClear${memberIndex}`);
+  if (!input || !suggContainer) return;
+
+  const query = normalizeArabic(input.value.trim());
+
+  if (query.length > 0 && clearBtn) {
+    clearBtn.classList.add('active');
+  } else if (clearBtn) {
+    clearBtn.classList.remove('active');
+  }
+
+  const matches = employees.filter(e => {
+    if (!query) return true;
+    return normalizeArabic(e.name).includes(query) ||
+           normalizeArabic(e.job).includes(query) ||
+           String(e.id).includes(query);
+  }).slice(0, 10);
+
+  if (matches.length === 0) {
+    suggContainer.innerHTML = `<div style="padding: 10px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">لا توجد أسماء مطابقة للبحث</div>`;
+    suggContainer.style.display = 'block';
+    return;
+  }
+
+  let html = '';
+  matches.forEach(m => {
+    html += `
+      <div class="comp-suggestion-item" onclick="selectCompMember(${memberIndex}, ${m.id})">
+        <span class="comp-sugg-name">${escapeHtml(m.name)}</span>
+        <div class="comp-sugg-meta">
+          <span class="comp-sugg-job">${escapeHtml(m.job)}</span>
+          <span class="comp-sugg-salary">${formatNumber(m.salaryAfter, 0)} ج.م</span>
+        </div>
+      </div>
+    `;
+  });
+
+  suggContainer.innerHTML = html;
+  suggContainer.style.display = 'block';
+}
+
+function selectCompMember(memberIndex, id) {
+  const member = employees.find(e => e.id === id);
+  if (!member) return;
+
+  if (memberIndex === 1) {
+    compareId1 = member.id;
+  } else {
+    compareId2 = member.id;
+  }
+
+  const input = document.getElementById(`compSearch${memberIndex}`);
+  const suggContainer = document.getElementById(`compSuggestions${memberIndex}`);
+  const clearBtn = document.getElementById(`compClear${memberIndex}`);
+  const badge = document.getElementById(`compSelectedBadge${memberIndex}`);
+
+  if (input) input.value = member.name;
+  if (clearBtn) clearBtn.classList.add('active');
+  if (suggContainer) suggContainer.style.display = 'none';
+
+  if (badge) {
+    badge.innerHTML = `<span>✓ تم اختيار: ${escapeHtml(member.name)} (${escapeHtml(member.job)})</span>`;
+    badge.classList.add('active');
+  }
+
+  updateComparison();
+}
+
+function clearCompSearch(memberIndex) {
+  if (memberIndex === 1) compareId1 = null;
+  else compareId2 = null;
+
+  const input = document.getElementById(`compSearch${memberIndex}`);
+  const clearBtn = document.getElementById(`compClear${memberIndex}`);
+  const badge = document.getElementById(`compSelectedBadge${memberIndex}`);
+  const suggContainer = document.getElementById(`compSuggestions${memberIndex}`);
+
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  if (clearBtn) clearBtn.classList.remove('active');
+  if (badge) badge.classList.remove('active');
+  if (suggContainer) suggContainer.style.display = 'none';
+
+  updateComparison();
+}
+
+function hideAllCompSuggestions() {
+  const s1 = document.getElementById('compSuggestions1');
+  const s2 = document.getElementById('compSuggestions2');
+  if (s1) s1.style.display = 'none';
+  if (s2) s2.style.display = 'none';
+}
+
+function updateComparison() {
+  const p1 = employees.find(e => e.id === compareId1);
+  const p2 = employees.find(e => e.id === compareId2);
+  const container = document.getElementById('compareResultsWrap');
+  if (!container) return;
+
+  if (!p1 || !p2) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 24px 10px; color: var(--text-muted); font-size: 0.88rem;">
+        <span>🔍 يرجى اختيار العضو الأول والعضو الثاني من البحث أعلاه لإجراء المقارنة</span>
+      </div>
+    `;
+    return;
+  }
 
   const diff = Math.round((p1.salaryAfter - p2.salaryAfter) * 1000) / 1000;
   let diffText = '';
@@ -870,28 +1030,228 @@ function updateComparison() {
 
   container.innerHTML = `
     <div class="compare-card">
-      <div class="compare-name">${p1.name}</div>
-      <div class="compare-row"><span>الوظيفة</span><span>${p1.job}</span></div>
+      <div class="compare-name">${escapeHtml(p1.name)}</div>
+      <div class="compare-row"><span>الوظيفة</span><span>${escapeHtml(p1.job)}</span></div>
       <div class="compare-row"><span>المرتب قبل</span><span>${formatNumber(p1.salaryBefore, 2)} ج.م</span></div>
       <div class="compare-row"><span>العلاوة</span><span>${formatNumber(p1.allowance, 2)} ج.م</span></div>
       <div class="compare-row"><span>الـ 10%</span><span>${formatNumber(p1.bonus10, 2)} ج.م</span></div>
-      <div class="compare-row" style="border-top:1px solid #ccc; font-weight:bold; color:var(--accent-blue)">
+      <div class="compare-row" style="border-top:1px solid var(--border-subtle); font-weight:bold; color:var(--accent-blue)">
         <span>الصافي النهائي</span><span>${formatNumber(p1.salaryAfter, 2)} ج.م</span>
       </div>
     </div>
 
     <div class="compare-card">
-      <div class="compare-name">${p2.name}</div>
-      <div class="compare-row"><span>الوظيفة</span><span>${p2.job}</span></div>
+      <div class="compare-name">${escapeHtml(p2.name)}</div>
+      <div class="compare-row"><span>الوظيفة</span><span>${escapeHtml(p2.job)}</span></div>
       <div class="compare-row"><span>المرتب قبل</span><span>${formatNumber(p2.salaryBefore, 2)} ج.م</span></div>
       <div class="compare-row"><span>العلاوة</span><span>${formatNumber(p2.allowance, 2)} ج.م</span></div>
       <div class="compare-row"><span>الـ 10%</span><span>${formatNumber(p2.bonus10, 2)} ج.م</span></div>
-      <div class="compare-row" style="border-top:1px solid #ccc; font-weight:bold; color:var(--accent-blue)">
+      <div class="compare-row" style="border-top:1px solid var(--border-subtle); font-weight:bold; color:var(--accent-blue)">
         <span>الصافي النهائي</span><span>${formatNumber(p2.salaryAfter, 2)} ج.م</span>
       </div>
     </div>
 
     <div class="compare-diff-banner">${diffText}</div>
+  `;
+}
+
+// ========================
+// Data Analytics Dashboard (لوحة تحليل البيانات والمؤشرات)
+// ========================
+function openAnalyticsModal() {
+  closeMenuDropdown();
+  renderAnalyticsDashboard();
+  document.getElementById('analyticsModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAnalyticsModal() {
+  document.getElementById('analyticsModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function renderAnalyticsDashboard() {
+  const container = document.getElementById('analyticsBodyContent');
+  if (!container) return;
+
+  const totalMembers = employees.length;
+  if (totalMembers === 0) {
+    container.innerHTML = '<p style="text-align:center; padding: 20px; color:var(--text-muted);">لا توجد بيانات متاحة للتحليل حالياً</p>';
+    return;
+  }
+
+  let totalPayroll = 0;
+  let totalBefore = 0;
+  let totalAllowances = 0;
+  let totalBonus10 = 0;
+  let maxPerson = employees[0];
+  let minPerson = employees[0];
+
+  const jobStats = {};
+  const brackets = {
+    'أكثر من 3000 ج.م': 0,
+    'من 2500 إلى 3000 ج.م': 0,
+    'من 2000 إلى 2500 ج.م': 0,
+    'أقل من 2000 ج.م': 0
+  };
+
+  employees.forEach(item => {
+    const after = parseNumber(item.salaryAfter);
+    const before = parseNumber(item.salaryBefore);
+    const allowance = parseNumber(item.allowance);
+    const bonus = parseNumber(item.bonus10);
+
+    totalPayroll += after;
+    totalBefore += before;
+    totalAllowances += allowance;
+    totalBonus10 += bonus;
+
+    if (after > parseNumber(maxPerson.salaryAfter)) maxPerson = item;
+    if (after < parseNumber(minPerson.salaryAfter)) minPerson = item;
+
+    const j = item.job || 'غير محدد';
+    if (!jobStats[j]) {
+      jobStats[j] = { count: 0, totalSalary: 0 };
+    }
+    jobStats[j].count += 1;
+    jobStats[j].totalSalary += after;
+
+    if (after >= 3000) brackets['أكثر من 3000 ج.م']++;
+    else if (after >= 2500) brackets['من 2500 إلى 3000 ج.م']++;
+    else if (after >= 2000) brackets['من 2000 إلى 2500 ج.م']++;
+    else brackets['أقل من 2000 ج.م']++;
+  });
+
+  const avgSalary = totalPayroll / totalMembers;
+  const yearlyBudget = totalPayroll * 12;
+  const netIncrease = totalPayroll - totalBefore;
+
+  // Job Distribution
+  let jobsHtml = '';
+  const sortedJobs = Object.entries(jobStats).sort((a, b) => b[1].totalSalary - a[1].totalSalary);
+  const colors = ['#2563eb', '#10b981', '#8b5cf6', '#f59e0b', '#06b6d4', '#f97316'];
+
+  sortedJobs.forEach(([job, stat], idx) => {
+    const pctOfCount = Math.round((stat.count / totalMembers) * 100);
+    const pctOfBudget = Math.round((stat.totalSalary / totalPayroll) * 100);
+    const avg = stat.totalSalary / stat.count;
+    const color = colors[idx % colors.length];
+
+    jobsHtml += `
+      <div class="stat-bar-item">
+        <div class="stat-bar-header">
+          <span class="stat-bar-name">${escapeHtml(job)} (${stat.count} عضو • ${pctOfCount}%)</span>
+          <span class="stat-bar-metrics">إجمالي: ${formatNumber(stat.totalSalary, 0)} ج.م (متوسط: ${formatNumber(avg, 0)})</span>
+        </div>
+        <div class="stat-bar-track">
+          <div class="stat-bar-fill" style="width: ${pctOfBudget}%; background: ${color};"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  // Brackets Distribution
+  let bracketsHtml = '';
+  Object.entries(brackets).forEach(([bracketName, count], idx) => {
+    const pct = Math.round((count / totalMembers) * 100);
+    const color = colors[(idx + 2) % colors.length];
+    bracketsHtml += `
+      <div class="stat-bar-item">
+        <div class="stat-bar-header">
+          <span class="stat-bar-name">${bracketName}</span>
+          <span class="stat-bar-metrics">${count} عضو (${pct}%)</span>
+        </div>
+        <div class="stat-bar-track">
+          <div class="stat-bar-fill" style="width: ${pct}%; background: ${color};"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = `
+    <!-- Top KPI Summary Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card highlight">
+        <span class="kpi-title">إجمالي الميزانية الشهرية</span>
+        <span class="kpi-val">${formatNumber(totalPayroll, 0)} ج.م</span>
+        <span class="kpi-sub">+${formatNumber(netIncrease, 0)} ج.م فرق الزيادة المضافة</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-title">الميزانية السنوية التقديرية</span>
+        <span class="kpi-val">${formatNumber(yearlyBudget, 0)} ج.م</span>
+        <span class="kpi-sub">تقدير صرف 12 شهراً كاملاً</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-title">متوسط راتب عضو التدريس</span>
+        <span class="kpi-val">${formatNumber(avgSalary, 0)} ج.م</span>
+        <span class="kpi-sub">لكافة الدرجات العلمية المسجلة</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-title">عدد أعضاء هيئة التدريس</span>
+        <span class="kpi-val">${totalMembers} عضو</span>
+        <span class="kpi-sub">شؤون العاملين - كلية الطب</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-title">إجمالي العلاوات الدورية</span>
+        <span class="kpi-val">${formatNumber(totalAllowances, 0)} ج.م</span>
+        <span class="kpi-sub">شهرياً لكافة الأعضاء</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-title">إجمالي بند الـ 10%</span>
+        <span class="kpi-val">${formatNumber(totalBonus10, 0)} ج.م</span>
+        <span class="kpi-sub">في 2015/6/30</span>
+      </div>
+    </div>
+
+    <!-- Highest & Lowest Salaries Section -->
+    <div class="analytics-section">
+      <div class="sec-title-row">
+        <span class="sec-title">🏆 أقصى وأدنى رواتب مسجلة</span>
+        <span class="sec-badge">المدى المالي للكشف</span>
+      </div>
+      <div class="extreme-cards-grid">
+        <div class="extreme-card">
+          <span class="extreme-tag high">أعلى راتب في الكشف</span>
+          <span class="extreme-name" title="${escapeHtml(maxPerson.name)}">${escapeHtml(maxPerson.name)}</span>
+          <span class="extreme-val">${formatNumber(maxPerson.salaryAfter, 2)} ج.م</span>
+          <span class="kpi-sub">${escapeHtml(maxPerson.job)}</span>
+        </div>
+
+        <div class="extreme-card">
+          <span class="extreme-tag low">أقل راتب في الكشف</span>
+          <span class="extreme-name" title="${escapeHtml(minPerson.name)}">${escapeHtml(minPerson.name)}</span>
+          <span class="extreme-val">${formatNumber(minPerson.salaryAfter, 2)} ج.م</span>
+          <span class="kpi-sub">${escapeHtml(minPerson.job)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cadre & Job Distribution -->
+    <div class="analytics-section">
+      <div class="sec-title-row">
+        <span class="sec-title">🏛️ توزيع الكادر ومخصصات الدرجات</span>
+        <span class="sec-badge">النسبة من إجمالي الميزانية</span>
+      </div>
+      <div class="stat-bars-list">
+        ${jobsHtml}
+      </div>
+    </div>
+
+    <!-- Salary Brackets Distribution -->
+    <div class="analytics-section">
+      <div class="sec-title-row">
+        <span class="sec-title">📈 شرائح الرواتب الشهرية</span>
+        <span class="sec-badge">توزيع الفئات المالية</span>
+      </div>
+      <div class="stat-bars-list">
+        ${bracketsHtml}
+      </div>
+    </div>
   `;
 }
 
@@ -1051,38 +1411,73 @@ function clearHistoryLog() {
 }
 
 // ========================
-// Printable Official Table
+// Printable Official Table (A4 Exact Google Sheet Replica)
 // ========================
 function printOfficialTable() {
   closeMenuDropdown();
   const tbody = document.getElementById('printTableBody');
+  const tfoot = document.getElementById('printTableFoot');
   const dateMeta = document.getElementById('printMetaDate');
+  const countMeta = document.getElementById('printMetaCount');
   const filtered = getFilteredAndSortedData();
 
   if (dateMeta) {
-    dateMeta.innerText = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')} - إجمالي الأعضاء: ${filtered.length}`;
+    dateMeta.innerText = `التاريخ: ${new Date().toLocaleDateString('ar-EG')}`;
   }
+  if (countMeta) {
+    countMeta.innerText = `عدد الأعضاء بالكشف: ${filtered.length}`;
+  }
+
+  let totalBefore = 0;
+  let totalAllowance = 0;
+  let totalBonus10 = 0;
+  let totalAfter = 0;
 
   if (tbody) {
     let html = '';
-    filtered.forEach((item, index) => {
+    filtered.forEach((item) => {
+      const b = parseNumber(item.salaryBefore);
+      const a = parseNumber(item.allowance);
+      const bonus = parseNumber(item.bonus10);
+      const aft = parseNumber(item.salaryAfter);
+
+      totalBefore += b;
+      totalAllowance += a;
+      totalBonus10 += bonus;
+      totalAfter += aft;
+
       html += `
         <tr>
           <td>${item.id}</td>
-          <td>${item.name}</td>
-          <td>${item.job}</td>
-          <td>${formatNumber(item.salaryBefore, 2)}</td>
-          <td>${formatNumber(item.allowance, 2)}</td>
-          <td>${formatNumber(item.bonus10, 2)}</td>
-          <td style="font-weight:bold;">${formatNumber(item.salaryAfter, 2)}</td>
-          <td style="width:120px;"></td>
+          <td class="name-cell">${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.job)}</td>
+          <td>${formatNumber(b, 2)}</td>
+          <td>${formatNumber(a, 2)}</td>
+          <td>${formatNumber(bonus, 2)}</td>
+          <td class="salary-cell">${formatNumber(aft, 2)}</td>
+          <td></td>
         </tr>
       `;
     });
     tbody.innerHTML = html;
   }
 
-  window.print();
+  if (tfoot) {
+    tfoot.innerHTML = `
+      <tr>
+        <td colspan="3" style="text-align: right; padding-right: 12px; font-weight: bold;">الإجمالي العام لجميع السادة أعضاء هيئة التدريس:</td>
+        <td style="font-weight: bold;">${formatNumber(totalBefore, 2)}</td>
+        <td style="font-weight: bold;">${formatNumber(totalAllowance, 2)}</td>
+        <td style="font-weight: bold;">${formatNumber(totalBonus10, 2)}</td>
+        <td class="salary-cell" style="font-weight: bold;">${formatNumber(totalAfter, 2)}</td>
+        <td></td>
+      </tr>
+    `;
+  }
+
+  setTimeout(() => {
+    window.print();
+  }, 100);
 }
 
 // ========================
@@ -1096,18 +1491,18 @@ function exportToExcel() {
 
   const exportData = employees.map(item => ({
     'م': item.id,
-    'الاسم': item.name,
+    'الاسم الكامل': item.name,
     'الوظيفة': item.job,
-    'المرتب قبل 2015/7/1': item.salaryBefore,
-    'العلاوة الدورية': item.allowance,
-    'الـ 10% في 2015/6/30': item.bonus10,
-    'المرتب في 2015/7/1': item.salaryAfter
+    'المرتب قبل 2015/7/1': parseNumber(item.salaryBefore),
+    'العلاوة الدورية': parseNumber(item.allowance),
+    'الـ 10% في 2015/6/30': parseNumber(item.bonus10),
+    'المرتب في 2015/7/1': parseNumber(item.salaryAfter)
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'الرواتب');
-  XLSX.writeFile(workbook, `كشف_الرواتب_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'رواتب كلية الطب');
+  XLSX.writeFile(workbook, `كشف_رواتب_كلية_الطب_جامعة_الزقازيق_${new Date().toISOString().slice(0, 10)}.xlsx`);
   showToast('تم تصدير ملف Excel بنجاح 📊');
   closeMenuDropdown();
 }

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8fafc">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>دليل رواتب هيئة التدريس</title>
+  <title>كلية الطب جامعة الزقازيق - شؤون العاملين | كشف الرواتب</title>
 
   <!-- Google Fonts: IBM Plex Sans Arabic & Cairo -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,18 +65,31 @@
           </svg>
         </div>
         <div class="brand-title-group">
-          <h2>دليل رواتب هيئة التدريس</h2>
-          <div class="live-indicator-pill" id="syncLiveBtn" role="button" title="انقر لتحديث البيانات من شيت جوجل">
-            <span class="live-pulse-dot" id="liveDot"></span>
-            <span id="liveStatusText">مباشر من الشيت</span>
-            <svg id="syncIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-            </svg>
+          <h2>كلية الطب - جامعة الزقازيق</h2>
+          <div class="brand-sub-row">
+            <span class="brand-sub-dept">شؤون العاملين</span>
+            <span class="brand-sub-sep">•</span>
+            <div class="live-indicator-pill" id="syncLiveBtn" role="button" title="انقر لتحديث البيانات من شيت جوجل">
+              <span class="live-pulse-dot" id="liveDot"></span>
+              <span id="liveStatusText">مباشر من الشيت</span>
+              <svg id="syncIcon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              </svg>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="nav-actions">
+        <!-- Analytics Dashboard Button -->
+        <button id="openAnalyticsBtn" class="icon-btn highlight-btn" onclick="openAnalyticsModal()" title="لوحة تحليل البيانات والمؤشرات 📊" aria-label="Open Analytics">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </button>
+
         <!-- Privacy Eye Toggle (Mask/Unmask Salaries) -->
         <button id="privacyToggleBtn" class="icon-btn" title="إخفاء / إظهار المبالغ (وضع الخصوصية)" aria-label="Toggle Privacy">
           <svg id="privacyIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -186,13 +199,12 @@
           </svg>
         </button>
 
-        <!-- Salary Simulator Tool -->
-        <button class="dock-icon-btn" onclick="openSimulatorModal()" title="محاكي العلاوات والزيادات 🧮">
+        <!-- Analytics Dashboard Button -->
+        <button class="dock-icon-btn" onclick="openAnalyticsModal()" title="لوحة تحليل البيانات والمؤشرات 📊">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="4" y="2" width="16" height="20" rx="2"/>
-            <line x1="8" y1="6" x2="16" y2="6"/>
-            <line x1="16" y1="14" x2="16" y2="18"/>
-            <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
           </svg>
         </button>
 
@@ -228,16 +240,27 @@
           </div>
 
           <div class="action-sheet-body">
-            <!-- Group 1: Files & Export -->
-            <div class="sheet-section-title">الملفات والتقارير</div>
+            <!-- Group 1: Official Print & Exports -->
+            <div class="sheet-section-title">الكشوفات الرسمية والتصدير</div>
             <div class="sheet-group">
+              <button class="sheet-menu-row" onclick="printOfficialTable()">
+                <div class="row-icon-box amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">طباعة كشف شيت جوجل الرسمي (PDF / A4)</span>
+                  <span class="row-sub">كشف جدول معتمد مطابق للأصل مع توقيعات شؤون العاملين</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
               <button class="sheet-menu-row" onclick="exportToExcel()">
                 <div class="row-icon-box green">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
                 </div>
                 <div class="row-content">
                   <span class="row-title">تصدير ملف Excel (.xlsx)</span>
-                  <span class="row-sub">تنزيل جدول إلكتروني متكامل للرواتب</span>
+                  <span class="row-sub">تحميل جدول إلكتروني كامل بكافة بنود المرتب</span>
                 </div>
                 <span class="row-chevron">›</span>
               </button>
@@ -248,7 +271,7 @@
                 </div>
                 <div class="row-content">
                   <span class="row-title">تصدير ملف CSV</span>
-                  <span class="row-sub">تنسيق نصي خفيف متوافق عالمياً</span>
+                  <span class="row-sub">تنسيق نصي خفيف متوافق مع البرامج وقواعد البيانات</span>
                 </div>
                 <span class="row-chevron">›</span>
               </button>
@@ -259,26 +282,37 @@
                 </div>
                 <div class="row-content">
                   <span class="row-title">استيراد ملف Excel أو CSV</span>
-                  <span class="row-sub">تحديث ودمج بيانات من جهازك</span>
-                </div>
-                <span class="row-chevron">›</span>
-              </button>
-
-              <button class="sheet-menu-row" onclick="printOfficialTable()">
-                <div class="row-icon-box amber">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                </div>
-                <div class="row-content">
-                  <span class="row-title">طباعة كشف التوقيعات الرسمي (A4)</span>
-                  <span class="row-sub">تنسيق رسمي مع خانة توقيع الاستلام</span>
+                  <span class="row-sub">تحديث ودمج بيانات الكشف من جهازك</span>
                 </div>
                 <span class="row-chevron">›</span>
               </button>
             </div>
 
-            <!-- Group 2: Tools & Security -->
-            <div class="sheet-section-title">الأدوات والأمان</div>
+            <!-- Group 2: Analytics & Tools -->
+            <div class="sheet-section-title">المؤشرات والتحليلات الذكية</div>
             <div class="sheet-group">
+              <button class="sheet-menu-row" onclick="openAnalyticsModal()">
+                <div class="row-icon-box blue">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">لوحة تحليل البيانات والمؤشرات 📊</span>
+                  <span class="row-sub">إجمالي الميزانية، متوسط الرواتب، وتوزيع الدرجات</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
+              <button class="sheet-menu-row" onclick="openSimulatorModal()">
+                <div class="row-icon-box green">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">محاكي الزيادات والعلاوات 🧮</span>
+                  <span class="row-sub">احتساب تكلفة أي زيادة قبل إقرارها في الميزانية</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
               <button class="sheet-menu-row" onclick="openHistoryModal()">
                 <div class="row-icon-box cyan">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
@@ -296,7 +330,7 @@
                 </div>
                 <div class="row-content">
                   <span class="row-title" id="pinMenuText">إعداد القفل السري (PIN)</span>
-                  <span class="row-sub">قفل التطبيق برقم سري لحماية الرواتب</span>
+                  <span class="row-sub">قفل التطبيق برقم سري لحماية سرية الرواتب</span>
                 </div>
                 <span class="row-chevron">›</span>
               </button>
@@ -537,24 +571,42 @@
     </div>
   </div>
 
-  <!-- Compare 2 Members Modal (مقارنة بين عضوين) -->
+  <!-- Compare 2 Members Modal (مقارنة بين عضوين بالبحث المباشر) -->
   <div id="compareModal" class="sheet-backdrop">
     <div class="sheet-scrim" onclick="closeCompareModal()"></div>
     <div class="sheet-card">
       <div class="sheet-grabber"></div>
       <div class="sheet-top">
-        <h3>مقارنة بين عضوين ⚖️</h3>
+        <div class="sheet-top-title-group">
+          <h3>مقارنة بين عضوين ⚖️</h3>
+          <p class="sheet-top-sub">ابحث بالاسم لتحديد العضوين والمقارنة بينهما فوراً</p>
+        </div>
         <button class="sheet-close" onclick="closeCompareModal()">✕</button>
       </div>
       <div class="compare-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">العضو الأول</label>
-            <select id="compareSelect1" class="form-input" onchange="updateComparison()"></select>
+        <div class="compare-search-grid">
+          <!-- Member 1 Search -->
+          <div class="comp-col">
+            <label class="form-label" for="compSearch1">العضو الأول:</label>
+            <div class="comp-input-box">
+              <svg class="comp-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="compSearch1" class="form-input comp-search-input" placeholder="اكتب اسم العضو الأول..." autocomplete="off">
+              <button type="button" class="comp-clear-btn" id="compClear1" onclick="clearCompSearch(1)" title="مسح">✕</button>
+            </div>
+            <div id="compSuggestions1" class="comp-suggestions-list" style="display: none;"></div>
+            <div id="compSelectedBadge1" class="comp-selected-badge"></div>
           </div>
-          <div class="form-group">
-            <label class="form-label">العضو الثاني</label>
-            <select id="compareSelect2" class="form-input" onchange="updateComparison()"></select>
+
+          <!-- Member 2 Search -->
+          <div class="comp-col">
+            <label class="form-label" for="compSearch2">العضو الثاني:</label>
+            <div class="comp-input-box">
+              <svg class="comp-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="compSearch2" class="form-input comp-search-input" placeholder="اكتب اسم العضو الثاني..." autocomplete="off">
+              <button type="button" class="comp-clear-btn" id="compClear2" onclick="clearCompSearch(2)" title="مسح">✕</button>
+            </div>
+            <div id="compSuggestions2" class="comp-suggestions-list" style="display: none;"></div>
+            <div id="compSelectedBadge2" class="comp-selected-badge"></div>
           </div>
         </div>
 
@@ -565,6 +617,33 @@
         <div class="sheet-actions">
           <button type="button" class="btn-secondary" onclick="closeCompareModal()">إغلاق</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics & Financial Dashboard Modal (لوحة تحليل البيانات والمؤشرات) -->
+  <div id="analyticsModal" class="sheet-backdrop">
+    <div class="sheet-scrim" onclick="closeAnalyticsModal()"></div>
+    <div class="sheet-card modal-large">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-top">
+        <div class="sheet-top-title-group">
+          <h3>لوحة تحليل البيانات والمؤشرات 📊</h3>
+          <p class="sheet-top-sub">كلية الطب - جامعة الزقازيق • شؤون العاملين</p>
+        </div>
+        <button class="sheet-close" onclick="closeAnalyticsModal()">✕</button>
+      </div>
+
+      <div class="analytics-body" id="analyticsBodyContent">
+        <!-- Injected dynamically by renderAnalyticsDashboard() in app.js -->
+      </div>
+
+      <div class="sheet-actions">
+        <button type="button" class="btn-secondary" onclick="closeAnalyticsModal()">إغلاق</button>
+        <button type="button" class="btn-primary" onclick="printOfficialTable()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span>طباعة كشف شيت جوجل الرسمي</span>
+        </button>
       </div>
     </div>
   </div>
@@ -590,34 +669,67 @@
     </div>
   </div>
 
-  <!-- Printable Official Signatures Sheet (Hidden on screen, prints cleanly on A4) -->
+  <!-- Printable Official Table (Hidden on screen, exact spreadsheet replica on A4 Print/PDF) -->
   <div id="printableOfficialTable" class="print-only-container">
     <div class="print-header">
-      <h2>جامعة / كلية ...</h2>
-      <h3>كشف صرف رواتب السادة أعضاء هيئة التدريس</h3>
-      <p id="printMetaDate"></p>
+      <div class="print-header-right">
+        <div class="print-uni-title">جمهورية مصر العربية</div>
+        <div class="print-uni-name">جامعة الزقازيق - كلية الطب البشري</div>
+        <div class="print-dept-name">إدارة شؤون العاملين • قسم المرتبات والاستحقاقات</div>
+      </div>
+      <div class="print-header-center">
+        <h2>كشف صرف مرتبات ومفردات السادة أعضاء هيئة التدريس</h2>
+        <div class="print-header-period" id="printMetaPeriod">المستحق في 1 / 7 / 2015 طبقاً للبيانات المعتمدة</div>
+      </div>
+      <div class="print-header-left">
+        <div class="print-meta-item" id="printMetaDate"></div>
+        <div class="print-meta-item" id="printMetaCount"></div>
+        <div class="print-stamp-box">خاتم شؤون العاملين</div>
+      </div>
     </div>
+
     <table class="print-table">
       <thead>
         <tr>
-          <th>م</th>
-          <th>الاسم</th>
-          <th>الوظيفة</th>
-          <th>المرتب قبل 7/1</th>
-          <th>العلاوة</th>
-          <th>الـ 10%</th>
-          <th>المرتب الصافي</th>
-          <th>التوقيع والاستلام</th>
+          <th style="width: 4%;">م</th>
+          <th style="width: 28%; text-align: right;">الاسم بالكامل</th>
+          <th style="width: 14%;">الوظيفة</th>
+          <th style="width: 13%;">المرتب قبل 2015/7/1</th>
+          <th style="width: 10%;">العلاوة الدورية</th>
+          <th style="width: 11%;">الـ 10% في 2015/6/30</th>
+          <th style="width: 13%;">المرتب في 2015/7/1</th>
+          <th style="width: 7%;">توقيع الاستلام</th>
         </tr>
       </thead>
       <tbody id="printTableBody">
-        <!-- Generated on print -->
+        <!-- Rendered row by row -->
       </tbody>
+      <tfoot id="printTableFoot">
+        <!-- Totals summary row -->
+      </tfoot>
     </table>
+
     <div class="print-signatures-footer">
-      <div>المسؤول المالي: ....................</div>
-      <div>مدير الحسابات: ....................</div>
-      <div>عميد الكلية: ....................</div>
+      <div class="sig-column">
+        <div class="sig-role">إعداد ومراجعة:</div>
+        <div class="sig-title">مسؤول شؤون العاملين</div>
+        <div class="sig-dots">...............................</div>
+      </div>
+      <div class="sig-column">
+        <div class="sig-role">مراجعة الحسابات:</div>
+        <div class="sig-title">المسؤول المالي / الحسابات</div>
+        <div class="sig-dots">...............................</div>
+      </div>
+      <div class="sig-column">
+        <div class="sig-role">مدير عام الكلية:</div>
+        <div class="sig-title">أمين عام كلية الطب</div>
+        <div class="sig-dots">...............................</div>
+      </div>
+      <div class="sig-column">
+        <div class="sig-role">يعتمد، عميد الكلية:</div>
+        <div class="sig-title">أ.د / عميد كلية الطب جامعة الزقازيق</div>
+        <div class="sig-dots">...............................</div>
+      </div>
     </div>
   </div>
 
