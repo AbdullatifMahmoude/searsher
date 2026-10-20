@@ -1283,13 +1283,9 @@ function initPinLock() {
   const localPin = localStorage.getItem(PIN_KEY);
   const isSessionUnlocked = sessionStorage.getItem(PIN_SESSION_KEY) === 'true';
   const screen = document.getElementById('pinLockScreen');
-  const menuText = document.getElementById('pinMenuText');
 
   const activePin = remotePin || localPin;
-
-  if (menuText) {
-    menuText.innerText = activePin ? 'إلغاء / تغيير القفل السري' : 'تفعيل قفل التطبيق (PIN)';
-  }
+  updateSecurityStatusUI();
 
   // If already verified in this session, do not block screen
   if (isSessionUnlocked) {
@@ -1305,7 +1301,30 @@ function initPinLock() {
   }
 }
 
-function fetchSettingsFromGoogleSheet() {
+function updateSecurityStatusUI() {
+  const menuText = document.getElementById('pinMenuText');
+  const badge = document.getElementById('remotePinDisplayBadge');
+  const activePin = remotePin || localStorage.getItem(PIN_KEY);
+
+  if (menuText) {
+    menuText.innerText = activePin ? 'شيت الأمان (القفل: مفعل)' : 'شيت الأمان وقفل التطبيق (PIN)';
+  }
+
+  if (badge) {
+    if (remotePin) {
+      badge.innerText = `مفعل في الشيت (${remotePin}) ✓`;
+      badge.style.color = '#10b981';
+    } else if (localStorage.getItem(PIN_KEY)) {
+      badge.innerText = `محلي فقط (${localStorage.getItem(PIN_KEY)})`;
+      badge.style.color = '#f59e0b';
+    } else {
+      badge.innerText = 'غير محدد (الكشف متاح للجميع)';
+      badge.style.color = 'var(--text-muted)';
+    }
+  }
+}
+
+function fetchSettingsFromGoogleSheet(onDone) {
   const callbackName = 'googleSheetsSettingsCallback_' + Math.floor(Math.random() * 1000000);
   const script = document.createElement('script');
 
@@ -1318,15 +1337,19 @@ function fetchSettingsFromGoogleSheet() {
     cleanup();
     try {
       parseRemoteSettings(json);
+      if (typeof onDone === 'function') onDone(true, remotePin);
     } catch (e) {
       console.error('Error parsing remote settings:', e);
+      if (typeof onDone === 'function') onDone(false, null);
     }
   };
 
-  script.src = `https://docs.google.com/spreadsheets/d/${SETTINGS_SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&_=${Date.now()}`;
+  // headers=0 ensures Google Sheets doesn't hide the first row as column header names
+  script.src = `https://docs.google.com/spreadsheets/d/${SETTINGS_SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&headers=0&_=${Date.now()}`;
   script.onerror = function() {
     cleanup();
     console.warn('Could not load remote settings sheet');
+    if (typeof onDone === 'function') onDone(false, null);
   };
 
   document.head.appendChild(script);
@@ -1334,51 +1357,100 @@ function fetchSettingsFromGoogleSheet() {
 
 function parseRemoteSettings(json) {
   isSettingsLoaded = true;
-  if (!json || !json.table || !json.table.rows) return;
-  const rows = json.table.rows;
+  if (!json || !json.table) return;
+
+  const cols = json.table.cols || [];
+  const rows = json.table.rows || [];
 
   let foundPin = null;
   let isLockExplicitlyDisabled = false;
 
+  // 1. Inspect table columns labels (Google gviz puts row 1 here if no headers exist or single row)
+  for (let i = 0; i < cols.length; i++) {
+    const col = cols[i];
+    if (!col) continue;
+    const label = String(col.label || '').trim();
+    if (!label) continue;
+
+    // Check if label itself is a 4-digit PIN (e.g. user typed 1234 in cell A1)
+    if (/^\d{4}$/.test(label)) {
+      foundPin = label;
+      break;
+    }
+
+    const lower = label.toLowerCase();
+    if (lower === 'pin' || lower === 'رمز' || lower === 'الرمز' || lower === 'الرمز_السري' || lower === 'password' || lower === 'كلمة_المرور' || lower === 'باسورد') {
+      if (cols[i + 1]) {
+        const nextLabel = String(cols[i + 1].label || '').trim();
+        if (/^\d{4}$/.test(nextLabel)) {
+          foundPin = nextLabel;
+          break;
+        }
+      }
+    }
+  }
+
+  // 2. Inspect table rows and cells
   for (const r of rows) {
-    if (!r.c) continue;
-    const col0 = r.c[0] ? String(r.c[0].v !== undefined ? r.c[0].v : (r.c[0].f || '')).trim() : '';
-    const col1 = r.c[1] ? String(r.c[1].v !== undefined ? r.c[1].v : (r.c[1].f || '')).trim() : '';
-    const col0Lower = col0.toLowerCase();
+    if (!r || !r.c) continue;
 
-    if (col0Lower === 'pin' || col0Lower === 'رمز' || col0 === 'الرمز' || col0 === 'الرمز_السري' || col0Lower === 'password' || col0 === 'كلمة_المرور') {
-      if (col1) foundPin = col1;
-    }
-    if (col0Lower === 'lock' || col0 === 'قفل' || col0Lower === 'lock_active' || col0 === 'تفعيل_القفل') {
-      if (col1.toLowerCase() === 'false' || col1 === '0' || col1 === 'معطل' || col1 === 'لا') {
-        isLockExplicitlyDisabled = true;
+    for (let cIdx = 0; cIdx < r.c.length; cIdx++) {
+      const cell = r.c[cIdx];
+      if (!cell) continue;
+      const val = String(cell.v !== undefined ? cell.v : (cell.f || '')).trim();
+      if (!val) continue;
+      const valLower = val.toLowerCase();
+
+      // Direct 4-digit PIN in early cell (A1, B1, etc.)
+      if (!foundPin && /^\d{4}$/.test(val) && cIdx <= 1) {
+        foundPin = val;
       }
-    }
-    if (col0Lower === 'webhook' || col0Lower === 'apps_script' || col0 === 'ويب_هوك') {
-      if (col1 && !localStorage.getItem(WEBHOOK_KEY)) {
-        localStorage.setItem(WEBHOOK_KEY, col1);
+
+      // Key-value pair in adjacent cells (col0="pin", col1="1234")
+      if (valLower === 'pin' || valLower === 'رمز' || val === 'الرمز' || val === 'الرمز_السري' || valLower === 'password' || val === 'كلمة_المرور' || val === 'باسورد') {
+        const nextCell = r.c[cIdx + 1];
+        if (nextCell) {
+          const nextVal = String(nextCell.v !== undefined ? nextCell.v : (nextCell.f || '')).trim();
+          if (nextVal) foundPin = nextVal;
+        }
+      }
+
+      // Check disable command
+      if (valLower === 'lock' || val === 'قفل' || valLower === 'lock_active' || val === 'تفعيل_القفل') {
+        const nextCell = r.c[cIdx + 1];
+        if (nextCell) {
+          const nextVal = String(nextCell.v !== undefined ? nextCell.v : (nextCell.f || '')).trim().toLowerCase();
+          if (nextVal === 'false' || nextVal === '0' || nextVal === 'معطل' || nextVal === 'لا' || nextVal === 'إلغاء') {
+            isLockExplicitlyDisabled = true;
+          }
+        }
+      }
+
+      // Webhook script URL saved in sheet
+      if (valLower === 'webhook' || valLower === 'apps_script' || val === 'ويب_هوك') {
+        const nextCell = r.c[cIdx + 1];
+        if (nextCell) {
+          const nextVal = String(nextCell.v !== undefined ? nextCell.v : (nextCell.f || '')).trim();
+          if (nextVal.startsWith('http') && !localStorage.getItem(WEBHOOK_KEY)) {
+            localStorage.setItem(WEBHOOK_KEY, nextVal);
+          }
+        }
       }
     }
   }
 
-  // Check cell A1 directly for a 4-digit PIN if key-value wasn't used
-  if (!foundPin && rows.length > 0 && rows[0].c && rows[0].c[0]) {
-    const val0 = String(rows[0].c[0].v !== undefined ? rows[0].c[0].v : (rows[0].c[0].f || '')).trim();
-    if (/^\d{4}$/.test(val0)) {
-      foundPin = val0;
-    }
-  }
-
+  // 3. Apply state
   if (foundPin && !isLockExplicitlyDisabled) {
     remotePin = foundPin;
     localStorage.setItem(PIN_KEY, foundPin);
     localStorage.setItem(PIN_REMOTE_ACTIVE_KEY, 'true');
-  } else if (rows.length > 0 && (isLockExplicitlyDisabled || !foundPin)) {
+  } else if ((rows.length > 0 || cols.some(c => c && c.label)) && (isLockExplicitlyDisabled || (foundPin === null && localStorage.getItem(PIN_REMOTE_ACTIVE_KEY) === 'true'))) {
     remotePin = null;
     localStorage.removeItem(PIN_KEY);
     localStorage.removeItem(PIN_REMOTE_ACTIVE_KEY);
   }
 
+  updateSecurityStatusUI();
   initPinLock();
 }
 
@@ -1430,58 +1502,76 @@ function verifyPin() {
   }
 }
 
-async function openPinSetupModal() {
+function openPinSetupModal() {
+  openSecurityModal();
+}
+
+function openSecurityModal() {
   closeMenuDropdown();
-  const currentPin = remotePin || localStorage.getItem(PIN_KEY);
+  const input = document.getElementById('securityWebhookInput');
+  if (input) input.value = localStorage.getItem(WEBHOOK_KEY) || '';
+  updateSecurityStatusUI();
+  const modal = document.getElementById('securityModal');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
 
-  if (currentPin) {
-    const choice = await showCustomConfirm({
-      title: 'إدارة القفل السري السحابي',
-      message: 'القفل مفعل حالياً ومربوط بشيت الأمان السحابي. يمكنك إلغاء القفل، أو فتح شيت جوجل لتعديل الرمز يدوياً لكافة الأجهزة.',
-      confirmText: 'إلغاء القفل',
-      cancelText: 'فتح شيت الأمان',
-      isDanger: false
-    });
-
-    if (choice) {
-      remotePin = null;
-      localStorage.removeItem(PIN_KEY);
-      localStorage.removeItem(PIN_REMOTE_ACTIVE_KEY);
-      sessionStorage.removeItem(PIN_SESSION_KEY);
-      initPinLock();
-      syncSettingsToSheet('set_pin', { pin: '' });
-      showToast('تم إلغاء القفل السري');
-    } else {
-      openSettingsSheetDirect();
-    }
-  } else {
-    const newPin = await showCustomPrompt({
-      title: 'تعيين رمز سري سحابي جديد',
-      message: 'أدخل رمز سري مكوّن من 4 أرقام سيتم تطبيقه على كافة الأجهزة فور فتح الرابط:',
-      placeholder: '••••',
-      inputType: 'password',
-      confirmText: 'تفعيل القفل',
-      cancelText: 'إلغاء'
-    });
-
-    if (newPin && newPin.trim().length === 4 && /^\d{4}$/.test(newPin.trim())) {
-      const pinVal = newPin.trim();
-      remotePin = pinVal;
-      localStorage.setItem(PIN_KEY, pinVal);
-      localStorage.setItem(PIN_REMOTE_ACTIVE_KEY, 'true');
-      sessionStorage.setItem(PIN_SESSION_KEY, 'true');
-      initPinLock();
-      syncSettingsToSheet('set_pin', { pin: pinVal });
-      showToast('تم تفعيل القفل السري بنجاح');
-    } else if (newPin) {
-      showToast('يجب أن يتكون الرمز من 4 أرقام');
-    }
+function closeSecurityModal() {
+  const modal = document.getElementById('securityModal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
   }
 }
 
 function openSettingsSheetDirect() {
-  closeMenuDropdown();
   window.open(`https://docs.google.com/spreadsheets/d/${SETTINGS_SPREADSHEET_ID}/edit`, '_blank');
+}
+
+function refreshRemotePinNow() {
+  showToast('جاري فحص شيت الأمان...');
+  const badge = document.getElementById('remotePinDisplayBadge');
+  if (badge) badge.innerText = 'جاري الفحص...';
+
+  fetchSettingsFromGoogleSheet((success, pin) => {
+    if (success) {
+      if (pin) {
+        showToast(`تم اكتشاف رمز سري من الشيت: ${pin}`);
+      } else {
+        showToast('تم فحص الشيت: لا يوجد رمز حالياً (الشيت فارغ)');
+      }
+    } else {
+      showToast('تعذر الاتصال بشيت الأمان، تحقق من الإنترنت');
+    }
+    updateSecurityStatusUI();
+  });
+}
+
+function copySecurityScriptCode() {
+  const block = document.getElementById('securityScriptCodeBlock');
+  if (!block) return;
+  navigator.clipboard.writeText(block.innerText).then(() => {
+    showToast('تم نسخ كود Apps Script لشيت الأمان بنجاح');
+  }).catch(() => {
+    showToast('تعذر النسخ، يرجى تحديده يدوياً');
+  });
+}
+
+function saveSecuritySettings() {
+  const input = document.getElementById('securityWebhookInput');
+  if (input) {
+    const val = input.value.trim();
+    if (val) {
+      localStorage.setItem(WEBHOOK_KEY, val);
+      showToast('تم حفظ رابط خدمة الويب (Apps Script) بنجاح');
+    } else {
+      localStorage.removeItem(WEBHOOK_KEY);
+      showToast('تم إزالة رابط خدمة الويب');
+    }
+  }
+  closeSecurityModal();
 }
 
 async function syncSettingsToSheet(action, payload) {
@@ -1513,15 +1603,18 @@ function logHistory(action, name, details) {
     const raw = localStorage.getItem(HISTORY_KEY);
     if (raw) history = JSON.parse(raw);
 
-    history.unshift({
+    const entry = {
       action,
       name,
       details,
       timestamp: new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })
-    });
+    };
+
+    history.unshift(entry);
 
     if (history.length > 50) history.pop();
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
     syncSettingsToSheet('audit_log', {
       timestamp: entry.timestamp,
       type: entry.action,

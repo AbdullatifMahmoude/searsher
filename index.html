@@ -366,13 +366,13 @@
                 <span class="row-chevron">›</span>
               </button>
 
-              <button class="sheet-menu-row" onclick="openPinSetupModal()">
+              <button class="sheet-menu-row" onclick="openSecurityModal()">
                 <div class="row-icon-box orange">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 </div>
                 <div class="row-content">
-                  <span class="row-title" id="pinMenuText">إعداد القفل السري (PIN)</span>
-                  <span class="row-sub">قفل التطبيق برقم سري لحماية سرية الرواتب</span>
+                  <span class="row-title" id="pinMenuText">شيت الأمان وقفل التطبيق (PIN)</span>
+                  <span class="row-sub">ربط الرمز السري وسجل التدقيق بشيت جوجل</span>
                 </div>
                 <span class="row-chevron">›</span>
               </button>
@@ -785,6 +785,110 @@ function doPost(e) {
         <div class="sheet-actions" style="margin-top: 10px;">
           <button type="button" class="btn-secondary" onclick="openGoogleSheetDirect()">فتح الشيت في جوجل</button>
           <button type="button" class="btn-primary" onclick="saveWebhookUrl()">حفظ الرابط</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security, Cloud PIN & Audit Log Modal (شيت الأمان وقفل التطبيق والتدقيق) -->
+  <div id="securityModal" class="sheet-backdrop">
+    <div class="sheet-scrim" onclick="closeSecurityModal()"></div>
+    <div class="sheet-card modal-large">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-top">
+        <div class="sheet-top-title-group">
+          <h3>شيت الأمان وقفل التطبيق السحابي</h3>
+          <p class="sheet-top-sub">ربط الرمز السري وسجل التدقيق بشيت جوجل لكافة الأجهزة</p>
+        </div>
+        <button class="sheet-close" onclick="closeSecurityModal()">✕</button>
+      </div>
+
+      <div class="security-modal-body" style="padding: 14px 18px 20px 18px; display: flex; flex-direction: column; gap: 14px; max-height: 80vh; overflow-y: auto;">
+        
+        <!-- Cloud Sheet Status Box -->
+        <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">شيت الأمان المرتبط:</span>
+            <span class="live-pulse-dot" style="background:#10b981;" title="متصل"></span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); word-break: break-all; direction: ltr; text-align: left; font-family: monospace;">
+            1puRhhC5J0f0xjTgnumjUvkujj8tUeczYAoMVaahrrOw
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-subtle); padding-top: 8px; margin-top: 2px;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">الرمز المقروء حالياً من الشيت:</span>
+            <span id="remotePinDisplayBadge" style="font-weight: 700; font-size: 0.85rem; color: var(--accent-blue);">جاري الفحص...</span>
+          </div>
+        </div>
+
+        <!-- Option 1: Direct in Sheet (The fast 5-second way) -->
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: #10b981; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">1</span>
+            <span style="font-weight: 700; font-size: 0.85rem; color: var(--text-main);">الطريقة السريعة الفورية (من شيت جوجل مباشرة):</span>
+          </div>
+          <p style="font-size: 0.78rem; line-height: 1.6; color: var(--text-main); margin: 0;">
+            فقط افتح شيت جوجل واكتب الرمز السري (مثلاً <strong>1234</strong>) في أول خانة <strong>(الخلية A1)</strong> مباشرة.<br>
+            بمجرد كتابته، أي هاتف أو جهاز كمبيوتر يفتح الرابط سيُطلب منه الرمز فوراً! ولإلغاء القفل، امسح الرقم من الشيت.
+          </p>
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <button type="button" class="btn-primary" style="flex: 1; padding: 9px; font-size: 0.8rem;" onclick="openSettingsSheetDirect()">
+              <span>فتح شيت الأمان في Google Sheets ↗</span>
+            </button>
+            <button type="button" class="btn-secondary" style="padding: 9px 12px; font-size: 0.8rem;" onclick="refreshRemotePinNow()" title="إعادة فحص الشيت">
+              <span>🔄 فحص الآن</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 2: Full Webhook Automation (Apps Script) -->
+        <div style="background: var(--bg-input); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: var(--text-muted); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">2</span>
+            <span style="font-weight: 700; font-size: 0.85rem; color: var(--text-main);">الحفظ التلقائي للتدقيق والرمز عبر (Apps Script):</span>
+          </div>
+          <p style="font-size: 0.78rem; line-height: 1.5; color: var(--text-muted); margin: 0;">
+            لتسجيل كل عملية تعديل في الشيت (سجل التدقيق) وتغيير الرمز من الموقع مباشرة: انشر الكود التالي كتطبيق ويب في الشيت:
+          </p>
+
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="securityWebhookInput" style="font-size: 0.78rem;">رابط خدمة الويب (Apps Script Web App URL):</label>
+            <input type="url" id="securityWebhookInput" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" dir="ltr" style="font-size: 0.78rem;">
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted);">كود Apps Script لشيت الأمان والتدقيق:</span>
+            <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.72rem;" onclick="copySecurityScriptCode()">نسخ كود الشيت</button>
+          </div>
+
+          <pre id="securityScriptCodeBlock" style="direction: ltr; text-align: left; font-size: 0.7rem; max-height: 110px; overflow-y: auto; background: var(--bg-card); padding: 8px; border-radius: 6px; border: 1px solid var(--border-subtle); color: var(--text-muted); font-family: monospace; margin: 0;">
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (data.action === "set_pin") {
+      var sheet = ss.getSheets()[0];
+      sheet.getRange("A1").setValue("pin");
+      sheet.getRange("B1").setValue("'" + (data.pin || ""));
+      return ContentService.createTextOutput(JSON.stringify({status: "ok", pin: data.pin})).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (data.action === "audit_log") {
+      var auditSheet = ss.getSheetByName("سجل_التدقيق") || ss.insertSheet("سجل_التدقيق");
+      if (auditSheet.getLastRow() === 0) {
+        auditSheet.appendRow(["التاريخ والوقت", "نوع العملية", "المسؤول / العضو", "التفاصيل"]);
+      }
+      auditSheet.appendRow([data.timestamp, data.type, data.name, data.details]);
+      return ContentService.createTextOutput(JSON.stringify({status: "ok"})).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: err.toString()})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+          </pre>
+        </div>
+
+        <div class="sheet-actions" style="margin-top: 6px;">
+          <button type="button" class="btn-secondary" onclick="closeSecurityModal()">إغلاق</button>
+          <button type="button" class="btn-primary" onclick="saveSecuritySettings()">حفظ رابط الويب هوك</button>
         </div>
       </div>
     </div>
