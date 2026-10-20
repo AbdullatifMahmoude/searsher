@@ -34,6 +34,17 @@ function normalizeArabic(text) {
     .toLowerCase();
 }
 
+/**
+ * استخراج الاسم الصافي بعد استبعاد الألقاب والدرجات العلمية لترتيب أبجدي دقيق
+ * يستبعد: أ.د/، د/، أ.م.د/، م.د/، د./، أ/، م/، دكتور/، الأستاذ الدكتور/ إلخ
+ */
+function getSortableName(name) {
+  if (!name) return '';
+  return String(name)
+    .replace(/^(أ\.?\s*د\.?\s*[\/\.]?|أ\.?\s*م\.?\s*د\.?\s*[\/\.]?|م\.?\s*د\.?\s*[\/\.]?|د\.?\s*[\/\.]?|م\.?\s*[\/\.]?|أ\.?\s*[\/\.]?|دكتور\s*[\/\.]?|الاستاذ\s*الدكتور\s*[\/\.]?|الأستاذ\s*الدكتور\s*[\/\.]?)\s*/i, '')
+    .trim();
+}
+
 function parseNumber(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (!val) return 0;
@@ -249,7 +260,9 @@ function getFilteredAndSortedData() {
       case 'id-desc':
         return b.id - a.id;
       case 'name-asc':
-        return a.name.localeCompare(b.name, 'ar');
+        return getSortableName(a.name).localeCompare(getSortableName(b.name), 'ar');
+      case 'name-desc':
+        return getSortableName(b.name).localeCompare(getSortableName(a.name), 'ar');
       case 'salary-desc':
         return parseNumber(b.salaryAfter) - parseNumber(a.salaryAfter);
       case 'salary-asc':
