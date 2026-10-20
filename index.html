@@ -25,7 +25,12 @@
   <!-- Fullscreen PIN Lock Overlay (Appears only if PIN is enabled) -->
   <div id="pinLockScreen" class="pin-lock-overlay" style="display: none;">
     <div class="pin-card">
-      <div class="pin-icon">🔒</div>
+      <div class="pin-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
       <h3 id="pinPromptTitle">أدخل الرمز السري</h3>
       <p id="pinPromptDesc">لحماية خصوصية كشف الرواتب</p>
       <div class="pin-dots">
@@ -82,7 +87,7 @@
 
       <div class="nav-actions">
         <!-- Analytics Dashboard Button -->
-        <button id="openAnalyticsBtn" class="icon-btn highlight-btn" onclick="openAnalyticsModal()" title="لوحة تحليل البيانات والمؤشرات 📊" aria-label="Open Analytics">
+        <button id="openAnalyticsBtn" class="icon-btn highlight-btn" onclick="openAnalyticsModal()" title="لوحة تحليل البيانات والمؤشرات" aria-label="Open Analytics">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10"/>
             <line x1="12" y1="20" x2="12" y2="4"/>
@@ -200,7 +205,7 @@
         </button>
 
         <!-- Analytics Dashboard Button -->
-        <button class="dock-icon-btn" onclick="openAnalyticsModal()" title="لوحة تحليل البيانات والمؤشرات 📊">
+        <button class="dock-icon-btn" onclick="openAnalyticsModal()" title="لوحة تحليل البيانات والمؤشرات">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="20" x2="18" y2="10"/>
             <line x1="12" y1="20" x2="12" y2="4"/>
@@ -209,7 +214,7 @@
         </button>
 
         <!-- Compare Tool -->
-        <button class="dock-icon-btn" onclick="openCompareModal()" title="مقارنة بين عضوين ⚖️">
+        <button class="dock-icon-btn" onclick="openCompareModal()" title="مقارنة بين عضوين">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
             <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
@@ -254,6 +259,17 @@
                 <span class="row-chevron">›</span>
               </button>
 
+              <button class="sheet-menu-row" onclick="openGoogleSheetDirect()">
+                <div class="row-icon-box green">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">فتح شيت جوجل الأصلي مباشرة</span>
+                  <span class="row-sub">الانتقال إلى ملف السحابة الأصلي للتعديل</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
               <button class="sheet-menu-row" onclick="exportToExcel()">
                 <div class="row-icon-box green">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
@@ -289,14 +305,14 @@
             </div>
 
             <!-- Group 2: Analytics & Tools -->
-            <div class="sheet-section-title">المؤشرات والتحليلات الذكية</div>
+            <div class="sheet-section-title">المؤشرات والتحليلات والربط</div>
             <div class="sheet-group">
               <button class="sheet-menu-row" onclick="openAnalyticsModal()">
                 <div class="row-icon-box blue">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 </div>
                 <div class="row-content">
-                  <span class="row-title">لوحة تحليل البيانات والمؤشرات 📊</span>
+                  <span class="row-title">لوحة تحليل البيانات والمؤشرات</span>
                   <span class="row-sub">إجمالي الميزانية، متوسط الرواتب، وتوزيع الدرجات</span>
                 </div>
                 <span class="row-chevron">›</span>
@@ -307,8 +323,19 @@
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/></svg>
                 </div>
                 <div class="row-content">
-                  <span class="row-title">محاكي الزيادات والعلاوات 🧮</span>
+                  <span class="row-title">محاكي الزيادات والعلاوات</span>
                   <span class="row-sub">احتساب تكلفة أي زيادة قبل إقرارها في الميزانية</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
+              <button class="sheet-menu-row" onclick="openWebhookSetupModal()">
+                <div class="row-icon-box orange">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title" id="webhookMenuTitle">مزامنة الحفظ السحابي في شيت جوجل</span>
+                  <span class="row-sub">ربط خدمة Webhook لحفظ التعديلات في الشيت مباشرة</span>
                 </div>
                 <span class="row-chevron">›</span>
               </button>
@@ -387,8 +414,8 @@
           <span class="sort-opt-title">المرتب الصافي (الأقل أولاً)</span>
           <span class="sort-opt-check">✓</span>
         </button>
-        <button class="sort-option-row" data-sort="favorites-first" onclick="selectSortOption('favorites-first', 'المثبت بالمفضلة ⭐')">
-          <span class="sort-opt-title">المثبت في المفضلة أولاً ⭐</span>
+        <button class="sort-option-row" data-sort="favorites-first" onclick="selectSortOption('favorites-first', 'المثبت بالمفضلة')">
+          <span class="sort-opt-title">المثبت في المفضلة أولاً</span>
           <span class="sort-opt-check">✓</span>
         </button>
       </div>
@@ -423,7 +450,9 @@
           <span>نسخ المفردات</span>
         </button>
         <button type="button" class="quick-pill" id="favPillBtn" onclick="toggleCurrentFavorite()">
-          <span id="favPillIcon">⭐</span>
+          <span id="favPillIcon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </span>
           <span id="favPillText">المفضلة</span>
         </button>
       </div>
@@ -511,7 +540,7 @@
     <div class="sheet-card">
       <div class="sheet-grabber"></div>
       <div class="sheet-top">
-        <h3>محاكي الزيادات والعلاوات 🧮</h3>
+        <h3>محاكي الزيادات والعلاوات</h3>
         <button class="sheet-close" onclick="closeSimulatorModal()">✕</button>
       </div>
       <div class="sim-body">
@@ -578,7 +607,7 @@
       <div class="sheet-grabber"></div>
       <div class="sheet-top">
         <div class="sheet-top-title-group">
-          <h3>مقارنة بين عضوين ⚖️</h3>
+          <h3>مقارنة بين عضوين</h3>
           <p class="sheet-top-sub">ابحث بالاسم لتحديد العضوين والمقارنة بينهما فوراً</p>
         </div>
         <button class="sheet-close" onclick="closeCompareModal()">✕</button>
@@ -628,7 +657,7 @@
       <div class="sheet-grabber"></div>
       <div class="sheet-top">
         <div class="sheet-top-title-group">
-          <h3>لوحة تحليل البيانات والمؤشرات 📊</h3>
+          <h3>لوحة تحليل البيانات والمؤشرات</h3>
           <p class="sheet-top-sub">كلية الطب - جامعة الزقازيق • شؤون العاملين</p>
         </div>
         <button class="sheet-close" onclick="closeAnalyticsModal()">✕</button>
@@ -654,7 +683,7 @@
     <div class="sheet-card">
       <div class="sheet-grabber"></div>
       <div class="sheet-top">
-        <h3>سجل التعديلات (Audit Log) 📝</h3>
+        <h3>سجل التعديلات (Audit Log)</h3>
         <button class="sheet-close" onclick="closeHistoryModal()">✕</button>
       </div>
       <div class="history-body">
@@ -664,6 +693,83 @@
         <div class="sheet-actions">
           <button type="button" class="btn-danger" onclick="clearHistoryLog()">مسح السجل</button>
           <button type="button" class="btn-secondary" onclick="closeHistoryModal()">إغلاق</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Sheet Cloud Sync Webhook Modal -->
+  <div id="webhookModal" class="sheet-backdrop">
+    <div class="sheet-scrim" onclick="closeWebhookSetupModal()"></div>
+    <div class="sheet-card modal-large">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-top">
+        <div class="sheet-top-title-group">
+          <h3>المزامنة السحابية مع شيت جوجل</h3>
+          <p class="sheet-top-sub">حفظ التعديلات والإضافات مباشرة في ملف شيت جوجل الأصلي</p>
+        </div>
+        <button class="sheet-close" onclick="closeWebhookSetupModal()">✕</button>
+      </div>
+
+      <div class="history-body" style="padding: 14px 18px 20px 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div class="webhook-guide-box">
+          <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-main);">
+            التطبيق يقرأ البيانات لحظياً ومباشرة من شيت جوجل المعتمد. لتفعيل <strong>الحفظ التلقائي في الشيت مباشرة</strong> عند تعديل أو إضافة أي عضو، يمكنك وضع رابط (Google Apps Script Web App) هنا:
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="webhookUrlInput">رابط خدمة الويب (Apps Script Web App URL):</label>
+          <input type="url" id="webhookUrlInput" class="form-input" placeholder="https://script.google.com/macros/s/.../exec" dir="ltr">
+        </div>
+
+        <div class="webhook-script-accordion" style="background: var(--bg-input); border-radius: var(--radius-sm); padding: 12px; border: 1px solid var(--border-subtle);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.8rem; font-weight: 600;">كود Google Apps Script البسيط للشيت:</span>
+            <button type="button" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="copyAppsScriptCode()">نسخ الكود</button>
+          </div>
+          <pre id="appsScriptCodeBlock" style="direction: ltr; text-align: left; font-size: 0.72rem; max-height: 140px; overflow-y: auto; background: var(--bg-card); padding: 8px; border-radius: 6px; border: 1px solid var(--border-subtle); color: var(--text-muted); font-family: monospace;">
+function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  if (data.action === "save") {
+    var rows = sheet.getDataRange().getValues();
+    var found = false;
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] == data.record.id) {
+        sheet.getRange(i + 1, 1, 1, 7).setValues([[
+          data.record.id, data.record.name, data.record.job,
+          data.record.salaryBefore, data.record.allowance,
+          data.record.bonus10, data.record.salaryAfter
+        ]]);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      sheet.appendRow([
+        data.record.id, data.record.name, data.record.job,
+        data.record.salaryBefore, data.record.allowance,
+        data.record.bonus10, data.record.salaryAfter
+      ]);
+    }
+  } else if (data.action === "delete") {
+    var rows = sheet.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] == data.id) {
+        sheet.deleteRow(i + 1);
+        break;
+      }
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify({status: "ok"})).setMimeType(ContentService.MimeType.JSON);
+}
+          </pre>
+        </div>
+
+        <div class="sheet-actions" style="margin-top: 10px;">
+          <button type="button" class="btn-secondary" onclick="openGoogleSheetDirect()">فتح الشيت في جوجل</button>
+          <button type="button" class="btn-primary" onclick="saveWebhookUrl()">حفظ الرابط</button>
         </div>
       </div>
     </div>
@@ -740,7 +846,6 @@
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- Scripts -->
-  <script src="data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

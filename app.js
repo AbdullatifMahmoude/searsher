@@ -14,6 +14,7 @@ const FAVORITES_KEY = 'payroll_favorites_v1';
 const PRIVACY_KEY = 'payroll_privacy_mask';
 const PIN_KEY = 'payroll_app_pin';
 const HISTORY_KEY = 'payroll_history_log_v1';
+const WEBHOOK_KEY = 'payroll_apps_script_url';
 
 // ========================
 // Application State
@@ -132,7 +133,7 @@ function togglePrivacyMode() {
   localStorage.setItem(PRIVACY_KEY, isPrivacyMasked);
   updatePrivacyIcon();
   renderCards();
-  showToast(isPrivacyMasked ? 'تم تفعيل وضع الخصوصية (إخفاء المبالغ 👁️)' : 'تم إظهار المبالغ');
+  showToast(isPrivacyMasked ? 'تم تفعيل وضع الخصوصية (إخفاء المبالغ)' : 'تم إظهار المبالغ');
 }
 
 function updatePrivacyIcon() {
@@ -165,7 +166,7 @@ function toggleFavorite(id, event) {
     showToast('تمت الإزالة من المفضلة');
   } else {
     favorites.push(id);
-    showToast('تم التثبيت في المفضلة ⭐');
+    showToast('تم التثبيت في المفضلة');
   }
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   renderCards();
@@ -180,7 +181,7 @@ function updateFavoritePill(id) {
   const isFav = favorites.includes(id);
   if (isFav) {
     icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
-    text.innerText = 'مثبت بالمفضلة ⭐';
+    text.innerText = 'مثبت بالمفضلة';
     btn.classList.add('active');
     btn.style.borderColor = '#f59e0b';
     btn.style.color = '#f59e0b';
@@ -217,7 +218,7 @@ function initVoiceSearch() {
   btn.addEventListener('click', () => {
     try {
       btn.classList.add('listening');
-      showToast('تحدث الآن... انطق اسم الدكتور 🎙️');
+      showToast('تحدث الآن... انطق اسم العضو');
       recognition.start();
     } catch (e) {
       recognition.stop();
@@ -317,7 +318,7 @@ function fetchLiveFromGoogleSheet(isManual = false) {
         
         renderApp();
         if (isManual) {
-          showToast(`تم تحديث البيانات لايف (${liveList.length} شخص) 🟢`);
+          showToast(`تم تحديث البيانات لايف (${liveList.length} شخص)`);
         }
       }
     } catch (err) {
@@ -346,8 +347,6 @@ function loadCachedData() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       employees = JSON.parse(raw);
-    } else if (typeof INITIAL_DATA !== 'undefined') {
-      employees = [...INITIAL_DATA];
     }
   } catch (e) {
     console.error(e);
@@ -652,17 +651,18 @@ function handleSavePerson(event) {
     const idx = employees.findIndex(e => e.id === editingId);
     if (idx !== -1) {
       const old = employees[idx];
-      logHistory('تعديل', name, `المرتب: ${old.salaryAfter} ج.م ➔ ${salaryAfter} ج.م`);
+      logHistory('تعديل', name, `المرتب: ${old.salaryAfter} ج.م إلى ${salaryAfter} ج.م`);
       employees[idx] = newRecord;
-      showToast('تم حفظ التعديل بنجاح ✅');
+      showToast('تم حفظ التعديل بنجاح');
     }
   } else {
     employees.push(newRecord);
     logHistory('إضافة جديد', name, `المرتب الصافي: ${salaryAfter} ج.م`);
-    showToast('تمت إضافة الشخص بنجاح ✅');
+    showToast('تمت إضافة السجل بنجاح');
   }
 
   saveDataLocally();
+  syncRecordToGoogleSheet('save', newRecord);
   closeModal();
   renderApp();
 }
@@ -675,6 +675,7 @@ function confirmDeletePerson(id) {
     logHistory('حذف', item.name, `مسلسل #${item.id}`);
     employees = employees.filter(e => e.id !== id);
     saveDataLocally();
+    syncRecordToGoogleSheet('delete', { id });
     if (editingId === id) closeModal();
     renderApp();
     showToast('تم حذف السجل');
@@ -686,13 +687,13 @@ function confirmDeletePerson(id) {
 // ========================
 function formatPersonText(item) {
   return `
-*دليل كشف رواتب هيئة التدريس* 📋
-👤 *الاسم:* ${item.name}
-💼 *الوظيفة:* ${item.job}
-💵 *المرتب قبل 2015/7/1:* ${item.salaryBefore} ج.م
-📈 *العلاوة الدورية:* ${item.allowance} ج.م
-✨ *الـ 10% في 2015/6/30:* ${item.bonus10} ج.م
-💰 *المرتب الصافي في 2015/7/1:* ${item.salaryAfter} ج.م
+*كشف رواتب كلية الطب - جامعة الزقازيق*
+*الاسم:* ${item.name}
+*الوظيفة:* ${item.job}
+*المرتب قبل 2015/7/1:* ${item.salaryBefore} ج.م
+*العلاوة الدورية:* ${item.allowance} ج.م
+*الـ 10% في 2015/6/30:* ${item.bonus10} ج.م
+*المرتب الصافي في 2015/7/1:* ${item.salaryAfter} ج.م
   `.trim();
 }
 
@@ -713,7 +714,7 @@ function copyCurrentPersonData() {
 
   const text = formatPersonText(item);
   navigator.clipboard.writeText(text).then(() => {
-    showToast('تم نسخ مفردات الراتب للحافظة 📋');
+    showToast('تم نسخ مفردات الراتب للحافظة');
   }).catch(() => {
     showToast('تعذر النسخ');
   });
@@ -818,7 +819,7 @@ function applySimulationToData() {
   saveDataLocally();
   renderApp();
   closeSimulatorModal();
-  showToast('تم تطبيق الزيادات على الكشف بنجاح 🎉');
+  showToast('تم تطبيق الزيادات على الكشف بنجاح');
 }
 
 // ========================
@@ -1012,7 +1013,7 @@ function updateComparison() {
   if (!p1 || !p2) {
     container.innerHTML = `
       <div style="text-align: center; padding: 24px 10px; color: var(--text-muted); font-size: 0.88rem;">
-        <span>🔍 يرجى اختيار العضو الأول والعضو الثاني من البحث أعلاه لإجراء المقارنة</span>
+        <span>يرجى اختيار العضو الأول والعضو الثاني من البحث أعلاه لإجراء المقارنة</span>
       </div>
     `;
     return;
@@ -1211,7 +1212,7 @@ function renderAnalyticsDashboard() {
     <!-- Highest & Lowest Salaries Section -->
     <div class="analytics-section">
       <div class="sec-title-row">
-        <span class="sec-title">🏆 أقصى وأدنى رواتب مسجلة</span>
+        <span class="sec-title">أقصى وأدنى رواتب مسجلة</span>
         <span class="sec-badge">المدى المالي للكشف</span>
       </div>
       <div class="extreme-cards-grid">
@@ -1234,7 +1235,7 @@ function renderAnalyticsDashboard() {
     <!-- Cadre & Job Distribution -->
     <div class="analytics-section">
       <div class="sec-title-row">
-        <span class="sec-title">🏛️ توزيع الكادر ومخصصات الدرجات</span>
+        <span class="sec-title">توزيع الكادر ومخصصات الدرجات</span>
         <span class="sec-badge">النسبة من إجمالي الميزانية</span>
       </div>
       <div class="stat-bars-list">
@@ -1245,7 +1246,7 @@ function renderAnalyticsDashboard() {
     <!-- Salary Brackets Distribution -->
     <div class="analytics-section">
       <div class="sec-title-row">
-        <span class="sec-title">📈 شرائح الرواتب الشهرية</span>
+        <span class="sec-title">شرائح الرواتب الشهرية</span>
         <span class="sec-badge">توزيع الفئات المالية</span>
       </div>
       <div class="stat-bars-list">
@@ -1312,9 +1313,9 @@ function verifyPin() {
   if (enteredPin === realPin) {
     document.getElementById('pinLockScreen').style.display = 'none';
     clearPin();
-    showToast('تم إلغاء القفل بنجاح 🔓');
+    showToast('تم إلغاء القفل بنجاح');
   } else {
-    showToast('الرمز السري غير صحيح ❌');
+    showToast('الرمز السري غير صحيح');
     clearPin();
   }
 }
@@ -1334,7 +1335,7 @@ function openPinSetupModal() {
     if (newPin && newPin.trim().length === 4 && /^\d{4}$/.test(newPin.trim())) {
       localStorage.setItem(PIN_KEY, newPin.trim());
       initPinLock();
-      showToast('تم تفعيل القفل السري بنجاح 🔒');
+      showToast('تم تفعيل القفل السري بنجاح');
     } else if (newPin) {
       showToast('يجب أن يتكون الرمز من 4 أرقام');
     }
@@ -1503,7 +1504,7 @@ function exportToExcel() {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'رواتب كلية الطب');
   XLSX.writeFile(workbook, `كشف_رواتب_كلية_الطب_جامعة_الزقازيق_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  showToast('تم تصدير ملف Excel بنجاح 📊');
+  showToast('تم تصدير ملف Excel بنجاح');
   closeMenuDropdown();
 }
 
@@ -1522,7 +1523,7 @@ function exportToCSV() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  showToast('تم تصدير ملف CSV بنجاح 📄');
+  showToast('تم تصدير ملف CSV بنجاح');
   closeMenuDropdown();
 }
 
@@ -1561,7 +1562,7 @@ function handleFileImport(e) {
           logHistory('استيراد ملف', file.name, `استيراد ${imported.length} سجل`);
           saveDataLocally();
           renderApp();
-          showToast(`تم استيراد ${imported.length} سجل بنجاح! 🎉`);
+          showToast(`تم استيراد ${imported.length} سجل بنجاح`);
         }
       } catch (err) {
         showToast('خطأ أثناء قراءة ملف Excel');
@@ -1593,7 +1594,7 @@ function handleFileImport(e) {
           logHistory('استيراد ملف', file.name, `استيراد ${imported.length} سجل`);
           saveDataLocally();
           renderApp();
-          showToast(`تم استيراد ${imported.length} سجل بنجاح! 🎉`);
+          showToast(`تم استيراد ${imported.length} سجل بنجاح`);
         }
       } catch (err) {
         showToast('خطأ أثناء قراءة ملف CSV');
@@ -1764,4 +1765,84 @@ function showToast(message) {
     toast.style.transition = 'all 0.25s ease';
     setTimeout(() => toast.remove(), 250);
   }, 2400);
+}
+
+
+// ========================
+// Google Sheet Live Webhook Sync
+// ========================
+function openGoogleSheetDirect() {
+  closeMenuDropdown();
+  window.open('https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/edit', '_blank');
+}
+
+function openWebhookSetupModal() {
+  closeMenuDropdown();
+  const input = document.getElementById('webhookUrlInput');
+  const savedUrl = localStorage.getItem(WEBHOOK_KEY) || '';
+  if (input) input.value = savedUrl;
+  const modal = document.getElementById('webhookModal');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeWebhookSetupModal() {
+  const modal = document.getElementById('webhookModal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+function saveWebhookUrl() {
+  const input = document.getElementById('webhookUrlInput');
+  if (!input) return;
+  const url = input.value.trim();
+  if (url) {
+    localStorage.setItem(WEBHOOK_KEY, url);
+    showToast('تم حفظ رابط الويب هوك بنجاح');
+  } else {
+    localStorage.removeItem(WEBHOOK_KEY);
+    showToast('تم إلغاء تفعيل الويب هوك');
+  }
+  closeWebhookSetupModal();
+}
+
+function copyAppsScriptCode() {
+  const codeEl = document.getElementById('appsScriptCodeText');
+  if (!codeEl) return;
+  navigator.clipboard.writeText(codeEl.innerText).then(() => {
+    showToast('تم نسخ كود المزامنة بنجاح');
+  }).catch(() => {
+    showToast('تعذر النسخ، يرجى تحديده يدوياً');
+  });
+}
+
+async function syncRecordToGoogleSheet(action, record) {
+  const webhookUrl = localStorage.getItem(WEBHOOK_KEY);
+  if (!webhookUrl) return;
+
+  try {
+    const payload = JSON.stringify({
+      action: action,
+      sheetId: SPREADSHEET_ID,
+      data: record
+    });
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: payload
+    });
+
+    showToast('تم إرسال التحديث لشيت جوجل السحابي');
+  } catch (err) {
+    console.error('Webhook sync error:', err);
+    showToast('تعذر الاتصال بـ Google Apps Script');
+  }
 }
