@@ -8,6 +8,7 @@
 // ========================
 const SPREADSHEET_ID = '1U9OzDrClCT5YPasb8JyioYcG-JRLAH5-vCxRJtoGA2w';
 const SETTINGS_SPREADSHEET_ID = '1puRhhC5J0f0xjTgnumjUvkujj8tUeczYAoMVaahrrOw';
+const MASTER_SECURITY_PIN = '1234'; // الرمز السري الرئيسي الإجباري لحماية الكشف على كافة الأجهزة
 const STORAGE_KEY = 'payroll_sheet_data_v1';
 const THEME_KEY = 'payroll_theme_mode';
 const MODIFIED_KEY = 'payroll_has_local_edits';
@@ -1279,47 +1280,48 @@ function renderAnalyticsDashboard() {
 // Cloud PIN & Settings Handling (Linked to Google Sheets)
 // https://docs.google.com/spreadsheets/d/1puRhhC5J0f0xjTgnumjUvkujj8tUeczYAoMVaahrrOw/edit
 // ========================
+function getActivePin() {
+  return remotePin || localStorage.getItem(PIN_KEY) || MASTER_SECURITY_PIN;
+}
+
 function initPinLock() {
-  const localPin = localStorage.getItem(PIN_KEY);
   const isSessionUnlocked = sessionStorage.getItem(PIN_SESSION_KEY) === 'true';
   const screen = document.getElementById('pinLockScreen');
 
-  const activePin = remotePin || localPin;
   updateSecurityStatusUI();
 
   // If already verified in this session, do not block screen
   if (isSessionUnlocked) {
     if (screen) screen.style.display = 'none';
+    document.documentElement.classList.add('unlocked-session');
     return;
   }
 
-  // If PIN is active and session is not unlocked, show PIN lock
-  if (activePin && screen) {
+  // FAIL-SECURE: Always enforce lock on all devices
+  if (screen) {
     screen.style.display = 'flex';
-  } else if (screen) {
-    screen.style.display = 'none';
   }
 }
 
 function updateSecurityStatusUI() {
   const menuText = document.getElementById('pinMenuText');
   const badge = document.getElementById('remotePinDisplayBadge');
-  const activePin = remotePin || localStorage.getItem(PIN_KEY);
+  const activePin = getActivePin();
 
   if (menuText) {
-    menuText.innerText = activePin ? 'شيت الأمان (القفل: مفعل)' : 'شيت الأمان وقفل التطبيق (PIN)';
+    menuText.innerText = `شيت الأمان (القفل: مفعل)`;
   }
 
   if (badge) {
     if (remotePin) {
-      badge.innerText = `مفعل في الشيت (${remotePin}) ✓`;
+      badge.innerText = `مفعل من الشيت (${remotePin}) ✓`;
       badge.style.color = '#10b981';
     } else if (localStorage.getItem(PIN_KEY)) {
-      badge.innerText = `محلي فقط (${localStorage.getItem(PIN_KEY)})`;
-      badge.style.color = '#f59e0b';
+      badge.innerText = `مفعل مخصص (${localStorage.getItem(PIN_KEY)}) ✓`;
+      badge.style.color = '#10b981';
     } else {
-      badge.innerText = 'غير محدد (الكشف متاح للجميع)';
-      badge.style.color = 'var(--text-muted)';
+      badge.innerText = `الرمز الرئيسي الشامل (${MASTER_SECURITY_PIN}) ✓`;
+      badge.style.color = '#10b981';
     }
   }
 }
@@ -1488,17 +1490,42 @@ function updatePinDots() {
 }
 
 function verifyPin() {
-  const activePin = remotePin || localStorage.getItem(PIN_KEY);
+  const activePin = getActivePin();
   if (enteredPin === activePin) {
     sessionStorage.setItem(PIN_SESSION_KEY, 'true');
+    document.documentElement.classList.add('unlocked-session');
     const screen = document.getElementById('pinLockScreen');
     if (screen) screen.style.display = 'none';
     clearPin();
     showToast('تم التحقق وإلغاء القفل بنجاح');
-    logHistory('تسجيل دخول', 'مستخدم النظام', 'تم إدخال الرمز السري السحابي بنجاح');
+    logHistory('تسجيل دخول', 'مستخدم النظام', 'تم إدخال الرمز السري بنجاح');
   } else {
     showToast('الرمز السري غير صحيح');
     clearPin();
+  }
+}
+
+async function changeMasterPin() {
+  closeSecurityModal();
+  const currentPin = getActivePin();
+  const newPin = await showCustomPrompt({
+    title: 'تغيير الرمز السري للتطبيق',
+    message: `الرمز السري الحالي هو (${currentPin}). أدخل الرمز الجديد المكون من 4 أرقام:`,
+    placeholder: '••••',
+    inputType: 'password',
+    confirmText: 'حفظ الرمز',
+    cancelText: 'إلغاء'
+  });
+
+  if (newPin && newPin.trim().length === 4 && /^\d{4}$/.test(newPin.trim())) {
+    const val = newPin.trim();
+    localStorage.setItem(PIN_KEY, val);
+    sessionStorage.setItem(PIN_SESSION_KEY, 'true');
+    syncSettingsToSheet('set_pin', { pin: val });
+    updateSecurityStatusUI();
+    showToast(`تم تغيير الرمز السري بنجاح إلى: ${val}`);
+  } else if (newPin) {
+    showToast('يجب أن يتكون الرمز من 4 أرقام');
   }
 }
 

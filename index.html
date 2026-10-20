@@ -19,11 +19,18 @@
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
+  <script>
+    try {
+      if (sessionStorage.getItem('payroll_session_unlocked') === 'true') {
+        document.documentElement.classList.add('unlocked-session');
+      }
+    } catch(e) {}
+  </script>
 </head>
 <body>
 
-  <!-- Fullscreen PIN Lock Overlay (Appears only if PIN is enabled) -->
-  <div id="pinLockScreen" class="pin-lock-overlay" style="display: none;">
+  <!-- Fullscreen PIN Lock Overlay (Active by default for total security across all devices) -->
+  <div id="pinLockScreen" class="pin-lock-overlay">
     <div class="pin-card">
       <div class="pin-icon">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -815,8 +822,11 @@ function doPost(e) {
             1puRhhC5J0f0xjTgnumjUvkujj8tUeczYAoMVaahrrOw
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-subtle); padding-top: 8px; margin-top: 2px;">
-            <span style="font-size: 0.8rem; color: var(--text-muted);">الرمز المقروء حالياً من الشيت:</span>
-            <span id="remotePinDisplayBadge" style="font-weight: 700; font-size: 0.85rem; color: var(--accent-blue);">جاري الفحص...</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">الرمز المقروء حالياً:</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="remotePinDisplayBadge" style="font-weight: 700; font-size: 0.85rem; color: var(--accent-blue);">جاري الفحص...</span>
+              <button type="button" class="btn-secondary" style="padding: 3px 8px; font-size: 0.72rem;" onclick="changeMasterPin()">تغيير الرمز</button>
+            </div>
           </div>
         </div>
 
