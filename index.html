@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>رواتب الذكية ✨ | كشف مباشر</title>
+
+  <!-- Google Fonts: Alexandria & Cairo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- SheetJS for Excel (.xlsx) support -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+  <!-- Ambient AI Glow Background -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="app-shell">
+    
+    <!-- Top Minimalist Header -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="ai-sparkle-badge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"/>
+          </svg>
+        </div>
+        <div class="nav-title-group">
+          <h2>رواتب الذكية</h2>
+          <div class="live-pill" id="syncLiveBtn" role="button" title="انقر للتحديث المباشر من شيت جوجل">
+            <span class="live-pulse" id="liveDot"></span>
+            <span id="liveStatusText">مباشر من الشيت</span>
+            <svg id="syncIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <!-- Quick stats summary pill -->
+        <div class="mini-metrics-pill" id="quickMetricsPill">
+          <span id="statTotalCount">0</span> شخص
+        </div>
+
+        <!-- Theme toggle -->
+        <button id="themeToggleBtn" class="icon-blur-btn" aria-label="Toggle Theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- AI Search Bar -->
+    <section class="search-section">
+      <div class="ai-search-card">
+        <span class="search-sparkle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </span>
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="ai-search-input" 
+          placeholder="ابحث بالاسم، الوظيفة، أو المرتب..."
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        >
+        <button id="searchClearBtn" class="search-clear" aria-label="Clear Search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Category Filter Chips -->
+    <nav class="chips-slider" id="filterChips" aria-label="Filters">
+      <!-- Injected by app.js -->
+    </nav>
+
+    <!-- Compact Floating Info Strip -->
+    <div class="info-strip">
+      <div class="info-text">
+        <span id="resultsCount">جاري جلب البيانات...</span>
+      </div>
+      <div class="sort-compact">
+        <select id="sortSelect" class="sort-select-ghost" aria-label="Sort">
+          <option value="id-asc">المسلسل (م) تصاعدي</option>
+          <option value="id-desc">المسلسل (م) تنازلي</option>
+          <option value="name-asc">أبجدياً (أ - ي)</option>
+          <option value="salary-desc">المرتب (الأعلى أولاً)</option>
+          <option value="salary-asc">المرتب (الأقل أولاً)</option>
+        </select>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Main Clean Cards List -->
+    <main class="cards-list" id="cardsContainer">
+      <!-- Person cards rendered via app.js -->
+    </main>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <div class="empty-sparkle">✨</div>
+      <h3>لا توجد نتائج مطابقة</h3>
+      <p>جرب البحث بجزء من الاسم أو قم بمسح مربع البحث</p>
+    </div>
+
+    <!-- Floating AI Dock (Bottom Navigation Bar) -->
+    <div class="floating-dock-wrap">
+      <div class="floating-dock">
+        <!-- Add New Person Button -->
+        <button id="fabAdd" class="dock-action-btn primary" title="إضافة شخص جديد">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>إضافة جديد</span>
+        </button>
+
+        <div class="dock-separator"></div>
+
+        <!-- Quick Sync Button -->
+        <button class="dock-icon-btn" onclick="fetchLiveFromGoogleSheet(true)" title="تحديث حي من شيت جوجل">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+        </button>
+
+        <!-- Export Excel -->
+        <button class="dock-icon-btn" onclick="exportToExcel()" title="تصدير ملف Excel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="8" y1="13" x2="16" y2="13"/>
+            <line x1="8" y1="17" x2="16" y2="17"/>
+          </svg>
+        </button>
+
+        <!-- More options menu trigger -->
+        <button id="menuBtn" class="dock-icon-btn" title="المزيد من الخيارات">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="1.5"/>
+            <circle cx="12" cy="5" r="1.5"/>
+            <circle cx="12" cy="19" r="1.5"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Popup menu above dock -->
+      <div id="dropdownMenu" class="dock-dropdown-menu">
+        <button class="menu-item" onclick="exportToCSV()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>تصدير كملف CSV</span>
+        </button>
+        <button class="menu-item" onclick="importFileTrigger()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>استيراد ملف Excel أو CSV</span>
+        </button>
+        <button class="menu-item" onclick="printReport()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span>طباعة / حفظ PDF</span>
+        </button>
+        <div class="menu-divider"></div>
+        <button class="menu-item danger" onclick="resetToDefault()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>إعادة جلب الشيت ومسح التعديل</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- iOS-Style Sleek Glass Bottom Sheet Modal -->
+  <div id="editModal" class="sheet-backdrop">
+    <div id="modalBackdrop" class="sheet-scrim"></div>
+    <div class="sheet-card">
+      <div class="sheet-grabber"></div>
+
+      <div class="sheet-top">
+        <div class="sheet-title-group">
+          <span class="sheet-ai-tag">✨ تعديل تفاعلي</span>
+          <h3 id="modalTitle">بيانات العضو</h3>
+        </div>
+        <button id="closeModalBtn" class="sheet-close" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="personForm" class="sheet-form">
+        <div class="glass-input-row">
+          <div class="glass-group" style="flex: 0 0 90px;">
+            <label class="glass-label" for="fieldId">م</label>
+            <input type="number" id="fieldId" class="glass-input" required min="1">
+          </div>
+          <div class="glass-group" style="flex: 1;">
+            <label class="glass-label" for="fieldJob">الوظيفة</label>
+            <input type="text" id="fieldJob" class="glass-input" list="jobsDatalist" required placeholder="أستاذ">
+            <datalist id="jobsDatalist">
+              <option value="عميد الكلية">
+              <option value="وكيل الكلية">
+              <option value="أستاذ">
+              <option value="أستاذ مساعد">
+              <option value="مدرس">
+              <option value="معيد">
+            </datalist>
+          </div>
+        </div>
+
+        <div class="glass-group">
+          <label class="glass-label" for="fieldName">الاسم الكامل</label>
+          <input type="text" id="fieldName" class="glass-input" required placeholder="د/ الاسم الكامل...">
+        </div>
+
+        <!-- AI Smart Auto Calculation Card -->
+        <div class="ai-calc-box">
+          <div class="ai-calc-info">
+            <div class="ai-sparkle-sm">✨</div>
+            <div>
+              <div class="ai-calc-title">الحساب الذكي التلقائي</div>
+              <div class="ai-calc-desc">تحديث المرتب النهائي فور كتابة الأرقام</div>
+            </div>
+          </div>
+          <label class="toggle-pill">
+            <input type="checkbox" id="autoCalcToggle" checked>
+            <span class="toggle-ball"></span>
+          </label>
+        </div>
+
+        <div class="glass-input-row">
+          <div class="glass-group">
+            <label class="glass-label" for="fieldSalaryBefore">المرتب قبل 7/1</label>
+            <input type="number" step="0.001" id="fieldSalaryBefore" class="glass-input" placeholder="0.00">
+          </div>
+          <div class="glass-group">
+            <label class="glass-label" for="fieldAllowance">العلاوة الدورية</label>
+            <input type="number" step="0.001" id="fieldAllowance" class="glass-input" placeholder="10">
+          </div>
+        </div>
+
+        <div class="glass-input-row">
+          <div class="glass-group">
+            <label class="glass-label" for="fieldBonus10">الـ 10% (6/30)</label>
+            <input type="number" step="0.001" id="fieldBonus10" class="glass-input" placeholder="0.00">
+          </div>
+          <div class="glass-group highlight">
+            <label class="glass-label" for="fieldSalaryAfter">المرتب في 7/1 (النهائي)</label>
+            <input type="number" step="0.001" id="fieldSalaryAfter" class="glass-input bold" placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="sheet-actions">
+          <button type="button" id="deleteBtnModal" class="btn-ghost-danger" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>حذف</span>
+          </button>
+          <button type="button" id="cancelModalBtn" class="btn-ghost">إلغاء</button>
+          <button type="submit" class="btn-glow-primary">
+            <span>حفظ التعديل</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Hidden File Input for Import -->
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
