@@ -1,23 +1,34 @@
 /**
- * نظام إدارة وبحث كشف الرواتب - قراءة حية (Live) مباشرة من شيت جوجل
+ * نظام إدارة وبحث كشف الرواتب - قراءة حية وميزات متقدمة للهاتف المحمول
  * https://docs.google.com/spreadsheets/d/1U9OzDrClCT5YPasb8JyioYcG-JRLAH5-vCxRJtoGA2w/edit
  */
 
 // ========================
-// Configuration & State
+// Configuration & Keys
 // ========================
 const SPREADSHEET_ID = '1U9OzDrClCT5YPasb8JyioYcG-JRLAH5-vCxRJtoGA2w';
 const STORAGE_KEY = 'payroll_sheet_data_v1';
 const THEME_KEY = 'payroll_theme_mode';
 const MODIFIED_KEY = 'payroll_has_local_edits';
+const FAVORITES_KEY = 'payroll_favorites_v1';
+const PRIVACY_KEY = 'payroll_privacy_mask';
+const PIN_KEY = 'payroll_app_pin';
+const HISTORY_KEY = 'payroll_history_log_v1';
 
+// ========================
+// Application State
+// ========================
 let employees = [];
+let favorites = [];
 let currentFilter = 'الكل';
 let searchQuery = '';
 let currentSort = 'id-asc';
 let autoCalculate = true;
 let editingId = null;
 let isFetchingLive = false;
+let isPrivacyMasked = false;
+let enteredPin = '';
+let currentPersonQrShown = false;
 
 // ========================
 // Arabic Text Normalization
@@ -36,7 +47,6 @@ function normalizeArabic(text) {
 
 /**
  * استخراج الاسم الصافي بعد استبعاد الألقاب والدرجات العلمية لترتيب أبجدي دقيق
- * يستبعد: أ.د/، د/، أ.م.د/، م.د/، د./، أ/، م/، دكتور/، الأستاذ الدكتور/ إلخ
  */
 function getSortableName(name) {
   if (!name) return '';
@@ -64,20 +74,27 @@ function formatNumber(num, decimals = 2) {
 }
 
 // ========================
-// Initialization & Live Fetch
+// Initialization
 // ========================
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  initPrivacyMode();
+  initFavorites();
+  initPinLock();
   setupEventListeners();
+  initVoiceSearch();
   
-  // 1. First load cached data for instant display (no blank screen)
+  // 1. Load cached data for instant load
   loadCachedData();
   renderApp();
 
-  // 2. Then immediately fetch LIVE data directly from Google Sheets
+  // 2. Fetch LIVE data directly from Google Sheets
   fetchLiveFromGoogleSheet(false);
 });
 
+// ========================
+// Theme Handling
+// ========================
 function initTheme() {
   const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
@@ -96,16 +113,139 @@ function updateThemeIcon(theme) {
   const btn = document.getElementById('themeToggleBtn');
   if (!btn) return;
   if (theme === 'dark') {
-    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
   } else {
-    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
   }
 }
 
-/**
- * جلب البيانات لايف وبشكل مباشر من شيت جوجل عبر Google Visualization API JSONP
- * ميزة JSONP أنها تعمل 100% دون قيود CORS وتعمل مباشرة في أي متصفح هاتف أو كمبيوتر
- */
+// ========================
+// Privacy Mode (Masking)
+// ========================
+function initPrivacyMode() {
+  isPrivacyMasked = localStorage.getItem(PRIVACY_KEY) === 'true';
+  updatePrivacyIcon();
+}
+
+function togglePrivacyMode() {
+  isPrivacyMasked = !isPrivacyMasked;
+  localStorage.setItem(PRIVACY_KEY, isPrivacyMasked);
+  updatePrivacyIcon();
+  renderCards();
+  showToast(isPrivacyMasked ? 'تم تفعيل وضع الخصوصية (إخفاء المبالغ 👁️)' : 'تم إظهار المبالغ');
+}
+
+function updatePrivacyIcon() {
+  const icon = document.getElementById('privacyIcon');
+  if (!icon) return;
+  if (isPrivacyMasked) {
+    icon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+  } else {
+    icon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  }
+}
+
+// ========================
+// Favorites / Pinning
+// ========================
+function initFavorites() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    favorites = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    favorites = [];
+  }
+}
+
+function toggleFavorite(id, event) {
+  if (event) event.stopPropagation();
+  const idx = favorites.indexOf(id);
+  if (idx !== -1) {
+    favorites.splice(idx, 1);
+    showToast('تمت الإزالة من المفضلة');
+  } else {
+    favorites.push(id);
+    showToast('تم التثبيت في المفضلة ⭐');
+  }
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+  renderCards();
+  updateFavoritePill(id);
+}
+
+function updateFavoritePill(id) {
+  const btn = document.getElementById('favPillBtn');
+  const icon = document.getElementById('favPillIcon');
+  const text = document.getElementById('favPillText');
+  if (!btn || !id) return;
+  const isFav = favorites.includes(id);
+  if (isFav) {
+    icon.innerText = '⭐';
+    text.innerText = 'مثبت بالمفضلة';
+    btn.style.color = '#eab308';
+  } else {
+    icon.innerText = '☆';
+    text.innerText = 'إضافة للمفضلة';
+    btn.style.color = '';
+  }
+}
+
+function toggleCurrentFavorite() {
+  if (editingId) toggleFavorite(editingId);
+}
+
+// ========================
+// Voice Search (Speech API)
+// ========================
+function initVoiceSearch() {
+  const btn = document.getElementById('voiceSearchBtn');
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'ar-EG';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  btn.addEventListener('click', () => {
+    try {
+      btn.classList.add('listening');
+      showToast('تحدث الآن... انطق اسم الدكتور 🎙️');
+      recognition.start();
+    } catch (e) {
+      recognition.stop();
+      btn.classList.remove('listening');
+    }
+  });
+
+  recognition.onresult = (event) => {
+    btn.classList.remove('listening');
+    const transcript = event.results[0][0].transcript;
+    if (transcript) {
+      document.getElementById('searchInput').value = transcript;
+      searchQuery = transcript;
+      document.getElementById('searchClearBtn').classList.add('active');
+      renderApp();
+      showToast(`بحث صوتي: "${transcript}"`);
+    }
+  };
+
+  recognition.onerror = () => {
+    btn.classList.remove('listening');
+    showToast('تعذر التعرف على الصوت، جرب ثانية');
+  };
+
+  recognition.onend = () => {
+    btn.classList.remove('listening');
+  };
+}
+
+// ========================
+// Live Fetch from Google Sheet
+// ========================
 function fetchLiveFromGoogleSheet(isManual = false) {
   if (isFetchingLive) return;
   isFetchingLive = true;
@@ -115,12 +255,8 @@ function fetchLiveFromGoogleSheet(isManual = false) {
   const liveStatusText = document.getElementById('liveStatusText');
 
   if (syncIcon) syncIcon.classList.add('spinning');
-  if (liveDot) {
-    liveDot.className = 'live-dot';
-  }
-  if (liveStatusText) {
-    liveStatusText.innerText = 'جاري القراءة لايف من شيت جوجل...';
-  }
+  if (liveDot) liveDot.className = 'live-pulse-dot';
+  if (liveStatusText) liveStatusText.innerText = 'جاري القراءة لايف...';
 
   const callbackName = 'gvizCallback_' + Date.now();
   const script = document.createElement('script');
@@ -129,7 +265,7 @@ function fetchLiveFromGoogleSheet(isManual = false) {
   const timer = setTimeout(() => {
     if (isDone) return;
     cleanup();
-    handleFetchError('تعذر الاتصال بشيت جوجل (انتهت المهلة)');
+    handleFetchError('تعذر الاتصال بشيت جوجل (مهلة)');
   }, 10000);
 
   function cleanup() {
@@ -172,18 +308,16 @@ function fetchLiveFromGoogleSheet(isManual = false) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
         localStorage.removeItem(MODIFIED_KEY);
         
-        if (liveDot) liveDot.className = 'live-dot online';
-        if (liveStatusText) liveStatusText.innerText = 'متصل لايف بالشيت (مُحدّث الآن)';
+        if (liveDot) liveDot.className = 'live-pulse-dot';
+        if (liveStatusText) liveStatusText.innerText = 'مباشر من الشيت (محدث)';
         
         renderApp();
         if (isManual) {
           showToast(`تم تحديث البيانات لايف (${liveList.length} شخص) 🟢`);
         }
-      } else {
-        throw new Error('لم يتم العثور على صفوف بيانات');
       }
     } catch (err) {
-      console.error('Error parsing live sheet data:', err);
+      console.error(err);
       handleFetchError('خطأ أثناء قراءة بيانات الشيت');
     }
   };
@@ -191,20 +325,15 @@ function fetchLiveFromGoogleSheet(isManual = false) {
   script.src = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&_=${Date.now()}`;
   script.onerror = function() {
     cleanup();
-    handleFetchError('تعذر تحميل الشيت (تحقق من الإنترنت)');
+    handleFetchError('تعذر تحميل الشيت (تحقق من الاتصال)');
   };
 
   document.head.appendChild(script);
 }
 
 function handleFetchError(msg) {
-  const liveDot = document.getElementById('liveDot');
   const liveStatusText = document.getElementById('liveStatusText');
-
-  if (liveDot) liveDot.className = 'live-dot offline';
-  if (liveStatusText) {
-    liveStatusText.innerText = 'يعمل بالذاكرة المؤقتة (دون إنترنت)';
-  }
+  if (liveStatusText) liveStatusText.innerText = 'أوفلاين (بيانات محفوظة)';
   showToast(msg);
 }
 
@@ -217,7 +346,7 @@ function loadCachedData() {
       employees = [...INITIAL_DATA];
     }
   } catch (e) {
-    console.error('Error loading cache:', e);
+    console.error(e);
   }
 }
 
@@ -226,11 +355,9 @@ function saveDataLocally() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
     localStorage.setItem(MODIFIED_KEY, 'true');
     const liveStatusText = document.getElementById('liveStatusText');
-    if (liveStatusText) {
-      liveStatusText.innerText = 'محفوظ محلياً (يحتوي على تعديلاتك)';
-    }
+    if (liveStatusText) liveStatusText.innerText = 'محفوظ محلياً (معدل)';
   } catch (e) {
-    console.error('Error saving local data:', e);
+    console.error(e);
   }
 }
 
@@ -254,6 +381,15 @@ function getFilteredAndSortedData() {
   });
 
   list.sort((a, b) => {
+    // If user selected favorites first
+    if (currentSort === 'favorites-first') {
+      const aFav = favorites.includes(a.id);
+      const bFav = favorites.includes(b.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      return a.id - b.id;
+    }
+
     switch (currentSort) {
       case 'id-asc':
         return a.id - b.id;
@@ -289,12 +425,8 @@ function renderStats() {
   const totalCount = filtered.length;
   
   let totalSalary = 0;
-  let maxSalary = 0;
-
   filtered.forEach(item => {
-    const s = parseNumber(item.salaryAfter);
-    totalSalary += s;
-    if (s > maxSalary) maxSalary = s;
+    totalSalary += parseNumber(item.salaryAfter);
   });
 
   const totalCountEl = document.getElementById('statTotalCount');
@@ -305,7 +437,8 @@ function renderStats() {
     if (searchQuery || currentFilter !== 'الكل') {
       resultsCountEl.innerHTML = `تم العثور على <span>${totalCount}</span> من أصل ${employees.length}`;
     } else {
-      resultsCountEl.innerHTML = `عرض <span>${totalCount}</span> عضو • إجمالي الرواتب <span>${formatNumber(totalSalary, 0)} ج.م</span>`;
+      const salaryText = isPrivacyMasked ? '•••• ج.م' : `${formatNumber(totalSalary, 0)} ج.م`;
+      resultsCountEl.innerHTML = `عرض <span>${totalCount}</span> عضو • إجمالي الرواتب <span>${salaryText}</span>`;
     }
   }
 }
@@ -369,6 +502,14 @@ function renderCards() {
   let html = '';
   filtered.forEach(item => {
     const highlightedName = highlightText(item.name, searchQuery);
+    const isFav = favorites.includes(item.id);
+    const starIcon = isFav ? '⭐' : '☆';
+    const starClass = isFav ? 'fav-star-btn active' : 'fav-star-btn';
+
+    // Mask salary if privacy mode is on
+    const salaryDisplay = isPrivacyMasked 
+      ? `<span class="masked-amount">••••</span>` 
+      : formatNumber(item.salaryAfter, 2);
 
     html += `
       <article class="person-card" onclick="openEditModal(${item.id})">
@@ -381,8 +522,11 @@ function renderCards() {
         </div>
 
         <div class="card-trailing">
+          <button class="${starClass}" title="تثبيت في المفضلة" onclick="toggleFavorite(${item.id}, event)">
+            ${starIcon}
+          </button>
           <div class="card-salary-block">
-            <span class="card-salary-num">${formatNumber(item.salaryAfter, 2)}</span>
+            <span class="card-salary-num">${salaryDisplay}</span>
             <span class="card-salary-curr">ج.م</span>
           </div>
           <span class="card-chevron">
@@ -401,8 +545,10 @@ function renderCards() {
 // ========================
 function openAddModal() {
   editingId = null;
-  document.getElementById('modalTitle').innerText = 'إضافة شخص جديد للكشف';
+  document.getElementById('modalTitle').innerText = 'إضافة عضو جديد';
   document.getElementById('deleteBtnModal').style.display = 'none';
+  document.getElementById('sheetQuickActions').style.display = 'none';
+  document.getElementById('qrCodeContainer').style.display = 'none';
 
   const maxId = employees.reduce((max, cur) => cur.id > max ? cur.id : max, 0);
   document.getElementById('fieldId').value = maxId + 1;
@@ -423,8 +569,12 @@ function openEditModal(id) {
   if (!item) return;
 
   editingId = id;
-  document.getElementById('modalTitle').innerText = `تعديل بيانات: ${item.name}`;
+  document.getElementById('modalTitle').innerText = `بيانات: ${item.name}`;
   document.getElementById('deleteBtnModal').style.display = 'inline-flex';
+  document.getElementById('sheetQuickActions').style.display = 'flex';
+  document.getElementById('qrCodeContainer').style.display = 'none';
+  currentPersonQrShown = false;
+  updateFavoritePill(id);
 
   document.getElementById('fieldId').value = item.id;
   document.getElementById('fieldName').value = item.name;
@@ -495,12 +645,15 @@ function handleSavePerson(event) {
   if (editingId !== null) {
     const idx = employees.findIndex(e => e.id === editingId);
     if (idx !== -1) {
+      const old = employees[idx];
+      logHistory('تعديل', name, `المرتب: ${old.salaryAfter} ج.م ➔ ${salaryAfter} ج.م`);
       employees[idx] = newRecord;
-      showToast('تم حفظ التعديل محلياً ✅');
+      showToast('تم حفظ التعديل بنجاح ✅');
     }
   } else {
     employees.push(newRecord);
-    showToast('تمت إضافة الشخص محلياً ✅');
+    logHistory('إضافة جديد', name, `المرتب الصافي: ${salaryAfter} ج.م`);
+    showToast('تمت إضافة الشخص بنجاح ✅');
   }
 
   saveDataLocally();
@@ -513,32 +666,423 @@ function confirmDeletePerson(id) {
   if (!item) return;
 
   if (confirm(`هل أنت متأكد من حذف (${item.name}) من الكشف؟`)) {
+    logHistory('حذف', item.name, `مسلسل #${item.id}`);
     employees = employees.filter(e => e.id !== id);
     saveDataLocally();
     if (editingId === id) closeModal();
     renderApp();
-    showToast('تم حذف السجل بنجاح');
+    showToast('تم حذف السجل');
   }
 }
 
-function copyPersonData(id) {
-  const item = employees.find(e => e.id === id);
+// ========================
+// WhatsApp Share & QR Code
+// ========================
+function formatPersonText(item) {
+  return `
+*دليل كشف رواتب هيئة التدريس* 📋
+👤 *الاسم:* ${item.name}
+💼 *الوظيفة:* ${item.job}
+💵 *المرتب قبل 2015/7/1:* ${item.salaryBefore} ج.م
+📈 *العلاوة الدورية:* ${item.allowance} ج.م
+✨ *الـ 10% في 2015/6/30:* ${item.bonus10} ج.م
+💰 *المرتب الصافي في 2015/7/1:* ${item.salaryAfter} ج.م
+  `.trim();
+}
+
+function shareCurrentPersonWhatsApp() {
+  if (!editingId) return;
+  const item = employees.find(e => e.id === editingId);
   if (!item) return;
 
-  const text = `
-الاسم: ${item.name}
-الوظيفة: ${item.job}
-المرتب قبل 2015/7/1: ${item.salaryBefore} ج.م
-العلاوة الدورية: ${item.allowance} ج.م
-الـ 10% في 2015/6/30: ${item.bonus10} ج.م
-المرتب في 2015/7/1: ${item.salaryAfter} ج.م
-  `.trim();
+  const text = formatPersonText(item);
+  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
 
+function copyCurrentPersonData() {
+  if (!editingId) return;
+  const item = employees.find(e => e.id === editingId);
+  if (!item) return;
+
+  const text = formatPersonText(item);
   navigator.clipboard.writeText(text).then(() => {
-    showToast('تم نسخ بيانات الشخص للحافظة 📋');
+    showToast('تم نسخ مفردات الراتب للحافظة 📋');
   }).catch(() => {
-    showToast('تعذر نسخ البيانات');
+    showToast('تعذر النسخ');
   });
+}
+
+function toggleCurrentQrCode() {
+  if (!editingId) return;
+  const item = employees.find(e => e.id === editingId);
+  if (!item) return;
+
+  const qrBox = document.getElementById('qrCodeContainer');
+  const qrImg = document.getElementById('qrCodeImg');
+
+  currentPersonQrShown = !currentPersonQrShown;
+  if (currentPersonQrShown) {
+    const text = formatPersonText(item);
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(text)}`;
+    qrBox.style.display = 'flex';
+  } else {
+    qrBox.style.display = 'none';
+  }
+}
+
+// ========================
+// Salary Simulator
+// ========================
+function openSimulatorModal() {
+  closeMenuDropdown();
+  runSimulation();
+  document.getElementById('simulatorModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSimulatorModal() {
+  document.getElementById('simulatorModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function runSimulation() {
+  const type = document.getElementById('simType').value;
+  const val = parseNumber(document.getElementById('simValue').value);
+  const targetJob = document.getElementById('simTargetJob').value;
+
+  const valLabel = document.getElementById('simValLabel');
+  if (valLabel) {
+    valLabel.innerText = type === 'percent' ? 'نسبة الزيادة (%)' : 'قيمة الزيادة (ج.م)';
+  }
+
+  let affectedCount = 0;
+  let totalCost = 0;
+  let currentTotalBudget = 0;
+
+  employees.forEach(item => {
+    const s = parseNumber(item.salaryAfter);
+    currentTotalBudget += s;
+    if (targetJob === 'الكل' || item.job === targetJob) {
+      affectedCount++;
+      if (type === 'percent') {
+        totalCost += (s * (val / 100));
+      } else {
+        totalCost += val;
+      }
+    }
+  });
+
+  const newTotalBudget = currentTotalBudget + totalCost;
+  const newAvgSalary = employees.length > 0 ? (newTotalBudget / employees.length) : 0;
+
+  document.getElementById('simAffectedCount').innerText = `${affectedCount} عضو`;
+  document.getElementById('simTotalCost').innerText = `+${formatNumber(totalCost, 1)} ج.م`;
+  document.getElementById('simNewTotalBudget').innerText = `${formatNumber(newTotalBudget, 1)} ج.م`;
+  document.getElementById('simNewAvgSalary').innerText = `${formatNumber(newAvgSalary, 1)} ج.م`;
+}
+
+function applySimulationToData() {
+  const type = document.getElementById('simType').value;
+  const val = parseNumber(document.getElementById('simValue').value);
+  const targetJob = document.getElementById('simTargetJob').value;
+
+  if (val <= 0) {
+    showToast('يرجى تحديد قيمة صالحة للزيادة');
+    return;
+  }
+
+  const desc = type === 'percent' ? `${val}%` : `${val} ج.م`;
+  if (!confirm(`هل أنت متأكد من تطبيق زيادة (${desc}) على ${targetJob === 'الكل' ? 'كافة الأعضاء' : targetJob}؟`)) {
+    return;
+  }
+
+  employees.forEach(item => {
+    if (targetJob === 'الكل' || item.job === targetJob) {
+      if (type === 'percent') {
+        const inc = Math.round(parseNumber(item.salaryAfter) * (val / 100) * 1000) / 1000;
+        item.salaryAfter = Math.round((item.salaryAfter + inc) * 1000) / 1000;
+      } else {
+        item.salaryAfter = Math.round((item.salaryAfter + val) * 1000) / 1000;
+      }
+    }
+  });
+
+  logHistory('محاكاة زيادة عامة', targetJob, `تطبيق زيادة ${desc}`);
+  saveDataLocally();
+  renderApp();
+  closeSimulatorModal();
+  showToast('تم تطبيق الزيادات على الكشف بنجاح 🎉');
+}
+
+// ========================
+// Comparison Tool
+// ========================
+function openCompareModal() {
+  closeMenuDropdown();
+  populateCompareDropdowns();
+  updateComparison();
+  document.getElementById('compareModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCompareModal() {
+  document.getElementById('compareModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function populateCompareDropdowns() {
+  const s1 = document.getElementById('compareSelect1');
+  const s2 = document.getElementById('compareSelect2');
+  if (!s1 || !s2) return;
+
+  let opts = '';
+  employees.forEach((item, i) => {
+    opts += `<option value="${item.id}">${item.name} (${item.job})</option>`;
+  });
+  s1.innerHTML = opts;
+  s2.innerHTML = opts;
+
+  if (employees.length >= 2) {
+    s1.value = employees[0].id;
+    s2.value = employees[1].id;
+  }
+}
+
+function updateComparison() {
+  const id1 = parseInt(document.getElementById('compareSelect1').value, 10);
+  const id2 = parseInt(document.getElementById('compareSelect2').value, 10);
+  const p1 = employees.find(e => e.id === id1);
+  const p2 = employees.find(e => e.id === id2);
+  const container = document.getElementById('compareResultsWrap');
+
+  if (!p1 || !p2 || !container) return;
+
+  const diff = Math.round((p1.salaryAfter - p2.salaryAfter) * 1000) / 1000;
+  let diffText = '';
+  if (diff > 0) {
+    diffText = `المرتب الصافي لـ (${p1.name}) أعلى بمقدار ${formatNumber(diff, 2)} ج.م`;
+  } else if (diff < 0) {
+    diffText = `المرتب الصافي لـ (${p2.name}) أعلى بمقدار ${formatNumber(Math.abs(diff), 2)} ج.م`;
+  } else {
+    diffText = `المرتبان متطابقان تماماً`;
+  }
+
+  container.innerHTML = `
+    <div class="compare-card">
+      <div class="compare-name">${p1.name}</div>
+      <div class="compare-row"><span>الوظيفة</span><span>${p1.job}</span></div>
+      <div class="compare-row"><span>المرتب قبل</span><span>${formatNumber(p1.salaryBefore, 2)} ج.م</span></div>
+      <div class="compare-row"><span>العلاوة</span><span>${formatNumber(p1.allowance, 2)} ج.م</span></div>
+      <div class="compare-row"><span>الـ 10%</span><span>${formatNumber(p1.bonus10, 2)} ج.م</span></div>
+      <div class="compare-row" style="border-top:1px solid #ccc; font-weight:bold; color:var(--accent-blue)">
+        <span>الصافي النهائي</span><span>${formatNumber(p1.salaryAfter, 2)} ج.م</span>
+      </div>
+    </div>
+
+    <div class="compare-card">
+      <div class="compare-name">${p2.name}</div>
+      <div class="compare-row"><span>الوظيفة</span><span>${p2.job}</span></div>
+      <div class="compare-row"><span>المرتب قبل</span><span>${formatNumber(p2.salaryBefore, 2)} ج.م</span></div>
+      <div class="compare-row"><span>العلاوة</span><span>${formatNumber(p2.allowance, 2)} ج.م</span></div>
+      <div class="compare-row"><span>الـ 10%</span><span>${formatNumber(p2.bonus10, 2)} ج.م</span></div>
+      <div class="compare-row" style="border-top:1px solid #ccc; font-weight:bold; color:var(--accent-blue)">
+        <span>الصافي النهائي</span><span>${formatNumber(p2.salaryAfter, 2)} ج.م</span>
+      </div>
+    </div>
+
+    <div class="compare-diff-banner">${diffText}</div>
+  `;
+}
+
+// ========================
+// PIN Lock Handling
+// ========================
+function initPinLock() {
+  const pin = localStorage.getItem(PIN_KEY);
+  const screen = document.getElementById('pinLockScreen');
+  const menuText = document.getElementById('pinMenuText');
+
+  if (menuText) {
+    menuText.innerText = pin ? 'إلغاء / تغيير القفل السري' : 'تفعيل قفل التطبيق (PIN)';
+  }
+
+  if (pin && screen) {
+    screen.style.display = 'flex';
+  } else if (screen) {
+    screen.style.display = 'none';
+  }
+}
+
+function pressPin(digit) {
+  if (enteredPin.length < 4) {
+    enteredPin += digit;
+    updatePinDots();
+  }
+
+  if (enteredPin.length === 4) {
+    setTimeout(verifyPin, 100);
+  }
+}
+
+function deletePin() {
+  if (enteredPin.length > 0) {
+    enteredPin = enteredPin.slice(0, -1);
+    updatePinDots();
+  }
+}
+
+function clearPin() {
+  enteredPin = '';
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById(`dot${i}`);
+    if (dot) {
+      if (i <= enteredPin.length) dot.classList.add('filled');
+      else dot.classList.remove('filled');
+    }
+  }
+}
+
+function verifyPin() {
+  const realPin = localStorage.getItem(PIN_KEY);
+  if (enteredPin === realPin) {
+    document.getElementById('pinLockScreen').style.display = 'none';
+    clearPin();
+    showToast('تم إلغاء القفل بنجاح 🔓');
+  } else {
+    showToast('الرمز السري غير صحيح ❌');
+    clearPin();
+  }
+}
+
+function openPinSetupModal() {
+  closeMenuDropdown();
+  const currentPin = localStorage.getItem(PIN_KEY);
+
+  if (currentPin) {
+    if (confirm('هل تريد إلغاء القفل السري للتطبيق؟')) {
+      localStorage.removeItem(PIN_KEY);
+      initPinLock();
+      showToast('تم إلغاء القفل السري بنجاح');
+    }
+  } else {
+    const newPin = prompt('أدخل رمز سري جديد من 4 أرقام:');
+    if (newPin && newPin.trim().length === 4 && /^\d{4}$/.test(newPin.trim())) {
+      localStorage.setItem(PIN_KEY, newPin.trim());
+      initPinLock();
+      showToast('تم تفعيل القفل السري بنجاح 🔒');
+    } else if (newPin) {
+      showToast('يجب أن يتكون الرمز من 4 أرقام');
+    }
+  }
+}
+
+// ========================
+// History / Audit Log
+// ========================
+function logHistory(action, name, details) {
+  try {
+    let history = [];
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) history = JSON.parse(raw);
+
+    history.unshift({
+      action,
+      name,
+      details,
+      timestamp: new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' })
+    });
+
+    if (history.length > 50) history.pop();
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function openHistoryModal() {
+  closeMenuDropdown();
+  const listEl = document.getElementById('historyList');
+  if (!listEl) return;
+
+  let history = [];
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (raw) history = JSON.parse(raw);
+  } catch (e) {}
+
+  if (history.length === 0) {
+    listEl.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">لا توجد تعديلات مسجلة حتى الآن</p>';
+  } else {
+    let html = '';
+    history.forEach(h => {
+      html += `
+        <div class="history-item">
+          <div class="history-item-top">
+            <span>${escapeHtml(h.action)}: ${escapeHtml(h.name)}</span>
+            <span class="history-item-time">${escapeHtml(h.timestamp)}</span>
+          </div>
+          <div class="history-item-desc">${escapeHtml(h.details)}</div>
+        </div>
+      `;
+    });
+    listEl.innerHTML = html;
+  }
+
+  document.getElementById('historyModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function clearHistoryLog() {
+  if (confirm('هل تريد مسح سجل التعديلات بالكامل؟')) {
+    localStorage.removeItem(HISTORY_KEY);
+    openHistoryModal();
+    showToast('تم مسح السجل');
+  }
+}
+
+// ========================
+// Printable Official Table
+// ========================
+function printOfficialTable() {
+  closeMenuDropdown();
+  const tbody = document.getElementById('printTableBody');
+  const dateMeta = document.getElementById('printMetaDate');
+  const filtered = getFilteredAndSortedData();
+
+  if (dateMeta) {
+    dateMeta.innerText = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')} - إجمالي الأعضاء: ${filtered.length}`;
+  }
+
+  if (tbody) {
+    let html = '';
+    filtered.forEach((item, index) => {
+      html += `
+        <tr>
+          <td>${item.id}</td>
+          <td>${item.name}</td>
+          <td>${item.job}</td>
+          <td>${formatNumber(item.salaryBefore, 2)}</td>
+          <td>${formatNumber(item.allowance, 2)}</td>
+          <td>${formatNumber(item.bonus10, 2)}</td>
+          <td style="font-weight:bold;">${formatNumber(item.salaryAfter, 2)}</td>
+          <td style="width:120px;"></td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+  }
+
+  window.print();
 }
 
 // ========================
@@ -546,7 +1090,6 @@ function copyPersonData(id) {
 // ========================
 function exportToExcel() {
   if (typeof XLSX === 'undefined') {
-    showToast('جاري التصدير بصيغة CSV...');
     exportToCSV();
     return;
   }
@@ -570,8 +1113,7 @@ function exportToExcel() {
 }
 
 function exportToCSV() {
-  let csvContent = '\uFEFF';
-  csvContent += 'م,الاسم,الوظيفة,المرتب قبل 2015/7/1,العلاوة الدورية,الـ 10% في 2015/6/30,المرتب في 2015/7/1\n';
+  let csvContent = '\uFEFFم,الاسم,الوظيفة,المرتب قبل 2015/7/1,العلاوة الدورية,الـ 10% في 2015/6/30,المرتب في 2015/7/1\n';
 
   employees.forEach(item => {
     csvContent += `"${item.id}","${item.name}","${item.job}","${item.salaryBefore}","${item.allowance}","${item.bonus10}","${item.salaryAfter}"\n`;
@@ -621,14 +1163,12 @@ function handleFileImport(e) {
 
         if (imported.length > 0) {
           employees = imported;
+          logHistory('استيراد ملف', file.name, `استيراد ${imported.length} سجل`);
           saveDataLocally();
           renderApp();
           showToast(`تم استيراد ${imported.length} سجل بنجاح! 🎉`);
-        } else {
-          showToast('لم يتم العثور على بيانات صالحة');
         }
       } catch (err) {
-        console.error(err);
         showToast('خطأ أثناء قراءة ملف Excel');
       }
     };
@@ -638,11 +1178,6 @@ function handleFileImport(e) {
       try {
         const text = evt.target.result;
         const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-        if (lines.length <= 1) {
-          showToast('الملف فارغ أو غير صالح');
-          return;
-        }
-
         const imported = [];
         for (let i = 1; i < lines.length; i++) {
           const cols = lines[i].split(',').map(c => c.replace(/^["']|["']$/g, '').trim());
@@ -658,15 +1193,14 @@ function handleFileImport(e) {
             });
           }
         }
-
         if (imported.length > 0) {
           employees = imported;
+          logHistory('استيراد ملف', file.name, `استيراد ${imported.length} سجل`);
           saveDataLocally();
           renderApp();
           showToast(`تم استيراد ${imported.length} سجل بنجاح! 🎉`);
         }
       } catch (err) {
-        console.error(err);
         showToast('خطأ أثناء قراءة ملف CSV');
       }
     };
@@ -685,19 +1219,17 @@ function resetToDefault() {
   }
 }
 
-function printReport() {
-  closeMenuDropdown();
-  window.print();
-}
-
 // ========================
 // UI Events Setup
 // ========================
 function setupEventListeners() {
-  // Sync Live Button
+  // Sync button
   document.getElementById('syncLiveBtn').addEventListener('click', () => {
     fetchLiveFromGoogleSheet(true);
   });
+
+  // Privacy toggle
+  document.getElementById('privacyToggleBtn').addEventListener('click', togglePrivacyMode);
 
   // Theme toggle
   document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
@@ -807,8 +1339,8 @@ function showToast(message) {
 
   setTimeout(() => {
     toast.style.opacity = '0';
-    toast.style.transform = 'translateY(10px)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 2600);
+    toast.style.transform = 'translateY(-10px)';
+    toast.style.transition = 'all 0.25s ease';
+    setTimeout(() => toast.remove(), 250);
+  }, 2400);
 }
