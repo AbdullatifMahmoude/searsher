@@ -43,34 +43,34 @@
 }
 
 [data-theme="dark"] {
-  /* Dark Mode (Deep Executive Obsidian) */
-  --bg-page: #0b0f19;
-  --bg-card: #131926;
-  --bg-card-hover: #171f30;
-  --bg-input: #1b2334;
-  --bg-dock: rgba(19, 25, 38, 0.94);
-  --bg-sheet: #131926;
-  --bg-chip: #1b2334;
-  --bg-chip-active: #3b82f6;
-  --text-chip-active: #ffffff;
+  /* Dark Mode (Refined Apple/Linear Charcoal OLED) */
+  --bg-page: #090c10;
+  --bg-card: #151b26;
+  --bg-card-hover: #1c2433;
+  --bg-input: #1b2230;
+  --bg-dock: rgba(21, 27, 38, 0.92);
+  --bg-sheet: #151b26;
+  --bg-chip: #1b2230;
+  --bg-chip-active: #ffffff;
+  --text-chip-active: #090c10;
 
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-card: rgba(255, 255, 255, 0.08);
-  --border-focus: #3b82f6;
+  --border-card: rgba(255, 255, 255, 0.07);
+  --border-focus: #38bdf8;
 
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --text-dim: #6e7681;
 
-  --accent-primary: #3b82f6;
-  --accent-blue: #3b82f6;
-  --accent-blue-soft: rgba(59, 130, 246, 0.15);
-  --accent-emerald: #10b981;
-  --accent-emerald-soft: rgba(16, 185, 129, 0.15);
+  --accent-primary: #38bdf8;
+  --accent-blue: #38bdf8;
+  --accent-blue-soft: rgba(56, 189, 248, 0.15);
+  --accent-emerald: #34d399;
+  --accent-emerald-soft: rgba(52, 211, 153, 0.15);
 
-  --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  --card-shadow-hover: 0 6px 16px rgba(0, 0, 0, 0.45);
-  --dock-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --dock-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* Base & Reset */
@@ -594,18 +594,22 @@ body {
 /* Dock Popup Menu */
 .dock-menu-card {
   position: absolute;
-  bottom: 60px;
-  left: 20px;
-  background: var(--bg-card);
+  bottom: 65px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-dock);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 6px;
   display: none;
   flex-direction: column;
   gap: 2px;
-  min-width: 220px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.15);
+  min-width: 230px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   pointer-events: auto;
+  z-index: 60;
 }
 
 .dock-menu-card.active {
