@@ -140,20 +140,15 @@
       <div class="info-text">
         <span id="resultsCount">جاري تحميل البيانات...</span>
       </div>
-      <div class="sort-wrapper">
-        <select id="sortSelect" class="sort-select" aria-label="Sort">
-          <option value="id-asc">المسلسل (م) تصاعدي</option>
-          <option value="id-desc">المسلسل (م) تنازلي</option>
-          <option value="name-asc">الاسم أبجدياً (أ - ي)</option>
-          <option value="name-desc">الاسم أبجدياً (ي - أ)</option>
-          <option value="salary-desc">المرتب (الأعلى أولاً)</option>
-          <option value="salary-asc">المرتب (الأقل أولاً)</option>
-          <option value="favorites-first">المثبت في المفضلة ⭐</option>
-        </select>
+      <button id="openSortSheetBtn" class="sort-pill-btn" onclick="openSortSheet()" title="تغيير طريقة الترتيب">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="m3 16 4 4 4-4M7 20V4M21 8l-4-4-4 4M17 4v16"/>
+        </svg>
+        <span id="currentSortLabel">المسلسل تصاعدي</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="m6 9 6 6 6-6"/>
         </svg>
-      </div>
+      </button>
     </div>
 
     <!-- Cards List -->
@@ -222,40 +217,148 @@
         </button>
       </div>
 
-      <!-- Popup menu above dock -->
-      <div id="dropdownMenu" class="dock-menu-card">
-        <button class="menu-item" onclick="exportToExcel()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-          <span>تصدير ملف Excel (.xlsx)</span>
-        </button>
-        <button class="menu-item" onclick="exportToCSV()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>تصدير ملف CSV</span>
-        </button>
-        <button class="menu-item" onclick="importFileTrigger()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span>استيراد ملف Excel أو CSV</span>
-        </button>
-        <button class="menu-item" onclick="printOfficialTable()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          <span>طباعة كشف التوقيعات الرسمي (A4)</span>
-        </button>
-        <button class="menu-item" onclick="openHistoryModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
-          <span>سجل التعديلات (Audit Log)</span>
-        </button>
-        <button class="menu-item" onclick="openPinSetupModal()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span id="pinMenuText">إعداد القفل السري (PIN)</span>
-        </button>
-        <div class="menu-divider"></div>
-        <button class="menu-item danger" onclick="resetToDefault()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          <span>استعادة بيانات الشيت الأصلية</span>
-        </button>
+      <!-- Upgraded iOS Action Sheet Menu -->
+      <div id="dropdownMenu" class="ios-action-sheet-backdrop">
+        <div class="ios-sheet-scrim" onclick="closeMenuDropdown()"></div>
+        <div class="ios-action-sheet">
+          <div class="sheet-grabber"></div>
+          <div class="action-sheet-header">
+            <h3>خيارات وأدوات الكشف</h3>
+            <button class="sheet-close" onclick="closeMenuDropdown()">✕</button>
+          </div>
+
+          <div class="action-sheet-body">
+            <!-- Group 1: Files & Export -->
+            <div class="sheet-section-title">الملفات والتقارير</div>
+            <div class="sheet-group">
+              <button class="sheet-menu-row" onclick="exportToExcel()">
+                <div class="row-icon-box green">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">تصدير ملف Excel (.xlsx)</span>
+                  <span class="row-sub">تنزيل جدول إلكتروني متكامل للرواتب</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
+              <button class="sheet-menu-row" onclick="exportToCSV()">
+                <div class="row-icon-box blue">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">تصدير ملف CSV</span>
+                  <span class="row-sub">تنسيق نصي خفيف متوافق عالمياً</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
+              <button class="sheet-menu-row" onclick="importFileTrigger()">
+                <div class="row-icon-box purple">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">استيراد ملف Excel أو CSV</span>
+                  <span class="row-sub">تحديث ودمج بيانات من جهازك</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
+              <button class="sheet-menu-row" onclick="printOfficialTable()">
+                <div class="row-icon-box amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">طباعة كشف التوقيعات الرسمي (A4)</span>
+                  <span class="row-sub">تنسيق رسمي مع خانة توقيع الاستلام</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+            </div>
+
+            <!-- Group 2: Tools & Security -->
+            <div class="sheet-section-title">الأدوات والأمان</div>
+            <div class="sheet-group">
+              <button class="sheet-menu-row" onclick="openHistoryModal()">
+                <div class="row-icon-box cyan">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">سجل التعديلات (Audit Log)</span>
+                  <span class="row-sub">تتبع كافة التغييرات المسجلة ومواعيدها</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
+              <button class="sheet-menu-row" onclick="openPinSetupModal()">
+                <div class="row-icon-box orange">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title" id="pinMenuText">إعداد القفل السري (PIN)</span>
+                  <span class="row-sub">قفل التطبيق برقم سري لحماية الرواتب</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+
+              <button class="sheet-menu-row danger" onclick="resetToDefault()">
+                <div class="row-icon-box red">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </div>
+                <div class="row-content">
+                  <span class="row-title">استعادة بيانات الشيت الأصلية</span>
+                  <span class="row-sub">مسح التعديلات المحلية وإعادة الجلب من جوجل</span>
+                </div>
+                <span class="row-chevron">›</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+  </div>
+
+  <!-- iOS Sort Sheet Modal (Replaces primitive HTML select) -->
+  <div id="sortSheet" class="sheet-backdrop">
+    <div class="sheet-scrim" onclick="closeSortSheet()"></div>
+    <div class="sheet-card">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-top">
+        <h3>ترتيب الكشف</h3>
+        <button class="sheet-close" onclick="closeSortSheet()">✕</button>
+      </div>
+      <div class="sort-options-list">
+        <button class="sort-option-row active" data-sort="id-asc" onclick="selectSortOption('id-asc', 'المسلسل تصاعدي')">
+          <span class="sort-opt-title">المسلسل (م) تصاعدي</span>
+          <span class="sort-opt-check">✓</span>
+        </button>
+        <button class="sort-option-row" data-sort="id-desc" onclick="selectSortOption('id-desc', 'المسلسل تنازلي')">
+          <span class="sort-opt-title">المسلسل (م) تنازلي</span>
+          <span class="sort-opt-check">✓</span>
+        </button>
+        <button class="sort-option-row" data-sort="name-asc" onclick="selectSortOption('name-asc', 'الاسم (أ - ي)')">
+          <span class="sort-opt-title">الاسم أبجدياً (أ - ي) بدون الألقاب</span>
+          <span class="sort-opt-check">✓</span>
+        </button>
+        <button class="sort-option-row" data-sort="name-desc" onclick="selectSortOption('name-desc', 'الاسم (ي - أ)')">
+          <span class="sort-opt-title">الاسم أبجدياً (ي - أ) بدون الألقاب</span>
+          <span class="sort-opt-check">✓</span>
+        </button>
+        <button class="sort-option-row" data-sort="salary-desc" onclick="selectSortOption('salary-desc', 'المرتب الأعلى')">
+          <span class="sort-opt-title">المرتب الصافي (الأعلى أولاً)</span>
+          <span class="sort-opt-check">✓</span>
+        </button>
+        <button class="sort-option-row" data-sort="salary-asc" onclick="selectSortOption('salary-asc', 'المرتب الأقل')">
+          <span class="sort-opt-title">المرتب الصافي (الأقل أولاً)</span>
+          <span class="sort-opt-check">✓</span>
+        </button>
+        <button class="sort-option-row" data-sort="favorites-first" onclick="selectSortOption('favorites-first', 'المثبت بالمفضلة ⭐')">
+          <span class="sort-opt-title">المثبت في المفضلة أولاً ⭐</span>
+          <span class="sort-opt-check">✓</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- iOS-Style Bottom Sheet Modal for Person Details & Edit -->

@@ -1257,12 +1257,6 @@ function setupEventListeners() {
   });
 
   // Sort select
-  const sortSelect = document.getElementById('sortSelect');
-  sortSelect.addEventListener('change', (e) => {
-    currentSort = e.target.value;
-    renderApp();
-  });
-
   // FAB Add
   document.getElementById('fabAdd').addEventListener('click', openAddModal);
 
@@ -1291,30 +1285,62 @@ function setupEventListeners() {
     if (autoCalculate) calculateSalaryFromInputs();
   });
 
-  // Dropdown menu
+  // Dropdown Action Sheet Menu
   const menuBtn = document.getElementById('menuBtn');
-  const dropdownMenu = document.getElementById('dropdownMenu');
-
   menuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    dropdownMenu.classList.toggle('active');
-  });
-
-  document.addEventListener('click', () => {
-    closeMenuDropdown();
-  });
-
-  dropdownMenu.addEventListener('click', (e) => {
-    e.stopPropagation();
+    openMenuDropdown();
   });
 
   // File import input
   document.getElementById('fileInput').addEventListener('change', handleFileImport);
 }
 
+// ========================
+// iOS Action Sheet & Sort Sheet Handlers
+// ========================
+function openMenuDropdown() {
+  const menu = document.getElementById('dropdownMenu');
+  if (menu) {
+    menu.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
 function closeMenuDropdown() {
   const menu = document.getElementById('dropdownMenu');
-  if (menu) menu.classList.remove('active');
+  if (menu) {
+    menu.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+function openSortSheet() {
+  document.getElementById('sortSheet').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSortSheet() {
+  document.getElementById('sortSheet').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function selectSortOption(sortKey, sortLabel) {
+  currentSort = sortKey;
+  const labelEl = document.getElementById('currentSortLabel');
+  if (labelEl) labelEl.innerText = sortLabel;
+
+  document.querySelectorAll('.sort-option-row').forEach(row => {
+    if (row.getAttribute('data-sort') === sortKey) {
+      row.classList.add('active');
+    } else {
+      row.classList.remove('active');
+    }
+  });
+
+  closeSortSheet();
+  renderApp();
+  showToast(`تم الترتيب حسب: ${sortLabel}`);
 }
 
 // ========================
