@@ -233,9 +233,10 @@
           </svg>
         </button>
       </div>
+    </div>
 
-      <!-- Upgraded iOS Action Sheet Menu -->
-      <div id="dropdownMenu" class="ios-action-sheet-backdrop">
+    <!-- Upgraded iOS Action Sheet Menu (Moved outside dock) -->
+    <div id="dropdownMenu" class="ios-action-sheet-backdrop">
         <div class="ios-sheet-scrim" onclick="closeMenuDropdown()"></div>
         <div class="ios-action-sheet">
           <div class="sheet-grabber"></div>
@@ -376,7 +377,6 @@
           </div>
         </div>
       </div>
-    </div>
 
   </div>
 
@@ -841,6 +841,32 @@ function doPost(e) {
 
   <!-- Hidden File Input for Import -->
   <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+
+  <!-- Custom Modern Confirm / Prompt Dialog (Replaces native browser alert/confirm/prompt) -->
+  <div id="customDialogModal" class="custom-dialog-backdrop">
+    <div class="custom-dialog-scrim" onclick="closeCustomDialog(false)"></div>
+    <div class="custom-dialog-card">
+      <div class="custom-dialog-icon-box" id="dialogIconBox">
+        <svg id="dialogIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h3 id="dialogTitle" class="custom-dialog-title">تأكيد الإجراء</h3>
+      <p id="dialogMessage" class="custom-dialog-message">هل أنت متأكد من المتابعة؟</p>
+      
+      <!-- Prompt input wrap (shown only for prompt) -->
+      <div id="dialogInputWrap" class="custom-dialog-input-wrap" style="display: none;">
+        <input type="text" id="dialogInput" class="custom-dialog-input" placeholder="أدخل القيمة..." autocomplete="off">
+      </div>
+
+      <div class="custom-dialog-actions">
+        <button id="dialogConfirmBtn" class="dialog-btn dialog-confirm-btn primary">تأكيد</button>
+        <button id="dialogCancelBtn" class="dialog-btn dialog-cancel-btn" onclick="closeCustomDialog(false)">إلغاء</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>

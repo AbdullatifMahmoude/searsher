@@ -82,7 +82,7 @@
 }
 
 /* ====================================================
-   Modern Sleek iOS/macOS Scrollbars (Global & Modals)
+   Modern Sleek Floating Scrollbars (Global & Modals)
    ==================================================== */
 html {
   scroll-behavior: smooth;
@@ -91,7 +91,7 @@ html {
 }
 
 [data-theme="dark"] html {
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 }
 
 * {
@@ -100,41 +100,48 @@ html {
 }
 
 [data-theme="dark"] * {
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
 }
 
-/* WebKit-based browsers (Chrome, Edge, Safari, Opera) */
+/* Hide scrollbar buttons (Windows default arrows) completely */
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
+  background-color: transparent;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background-color: transparent;
+  border-radius: 9999px;
+  margin: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.38);
+  background-color: rgba(148, 163, 184, 0.45);
   border-radius: 9999px;
-  border: 1px solid transparent;
-  background-clip: padding-box;
   transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.7);
+  background-color: rgba(100, 116, 139, 0.8);
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background-color: rgba(255, 255, 255, 0.22);
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.38);
+  background-color: rgba(255, 255, 255, 0.45);
 }
 
 ::-webkit-scrollbar-corner {
-  background: transparent;
+  background-color: transparent;
 }
 
 body {
@@ -1544,10 +1551,12 @@ input:checked + .toggle-slider:before {
 .ios-action-sheet-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: 1000;
   display: none;
   align-items: flex-end;
   justify-content: center;
+  pointer-events: auto !important;
+  touch-action: pan-y;
 }
 
 .ios-action-sheet-backdrop.active {
@@ -1557,9 +1566,11 @@ input:checked + .toggle-slider:before {
 .ios-sheet-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  cursor: pointer;
+  pointer-events: auto !important;
 }
 
 .ios-action-sheet {
@@ -1571,11 +1582,14 @@ input:checked + .toggle-slider:before {
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   border-top: 1px solid var(--border-subtle);
   padding: 12px 20px 36px 20px;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35);
   transform: translateY(100%);
   transition: transform 0.26s var(--ease-spring);
   max-height: 85vh;
-  overflow-y: auto;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  pointer-events: auto !important;
 }
 
 .ios-action-sheet-backdrop.active .ios-action-sheet {
@@ -2236,6 +2250,233 @@ input:checked + .toggle-slider:before {
     color: #94a3b8 !important;
     font-size: 8pt !important;
   }
+}
+
+/* ====================================================
+   Mobile Navbar Optimization (Prevents text cramped/wrap)
+   ==================================================== */
+@media (max-width: 600px) {
+  .top-nav {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .nav-brand {
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-icon-box {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+
+  .brand-icon-box svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .brand-title-group {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .brand-title-group h2 {
+    font-size: 0.92rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+  }
+
+  .brand-sub-row {
+    margin-top: 1px;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .brand-sub-dept {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  /* Hide redundant Analytics button from top nav on mobile (accessible in bottom dock & action sheet) */
+  #openAnalyticsBtn {
+    display: none !important;
+  }
+
+  .nav-actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .nav-actions .icon-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+
+  .nav-actions .icon-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 440px) {
+  .brand-sub-sep,
+  .brand-sub-row .live-indicator-pill {
+    display: none !important;
+  }
+
+  .brand-title-group h2 {
+    font-size: 0.88rem;
+  }
+}
+
+/* ====================================================
+   Custom Modern Confirm / Prompt Dialog
+   ==================================================== */
+.custom-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: auto;
+}
+
+.custom-dialog-backdrop.active {
+  display: flex;
+}
+
+.custom-dialog-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 0.18s ease forwards;
+}
+
+.custom-dialog-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  padding: 24px 20px 20px 20px;
+  text-align: center;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  animation: scaleIn 0.2s var(--ease-spring) forwards;
+}
+
+.custom-dialog-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  margin: 0 auto 14px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.custom-dialog-icon-box.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.custom-dialog-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.custom-dialog-message {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.custom-dialog-input-wrap {
+  margin-bottom: 18px;
+}
+
+.custom-dialog-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 1rem;
+  font-family: inherit;
+  text-align: center;
+  letter-spacing: 2px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.custom-dialog-input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.custom-dialog-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog-btn {
+  flex: 1;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.dialog-confirm-btn.primary {
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+
+.dialog-confirm-btn.primary:hover {
+  filter: brightness(1.1);
+}
+
+.dialog-confirm-btn.danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.dialog-confirm-btn.danger:hover {
+  background: #dc2626;
+}
+
+.dialog-cancel-btn {
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+}
+
+.dialog-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 

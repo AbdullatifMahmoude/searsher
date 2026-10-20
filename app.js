@@ -667,11 +667,19 @@ function handleSavePerson(event) {
   renderApp();
 }
 
-function confirmDeletePerson(id) {
+async function confirmDeletePerson(id) {
   const item = employees.find(e => e.id === id);
   if (!item) return;
 
-  if (confirm(`هل أنت متأكد من حذف (${item.name}) من الكشف؟`)) {
+  const confirmed = await showCustomConfirm({
+    title: 'تأكيد حذف السجل',
+    message: `هل أنت متأكد من حذف (${item.name}) من كشف الرواتب نهائياً؟`,
+    confirmText: 'حذف السجل',
+    cancelText: 'إلغاء',
+    isDanger: true
+  });
+
+  if (confirmed) {
     logHistory('حذف', item.name, `مسلسل #${item.id}`);
     employees = employees.filter(e => e.id !== id);
     saveDataLocally();
@@ -789,7 +797,7 @@ function runSimulation() {
   document.getElementById('simNewAvgSalary').innerText = `${formatNumber(newAvgSalary, 1)} ج.م`;
 }
 
-function applySimulationToData() {
+async function applySimulationToData() {
   const type = document.getElementById('simType').value;
   const val = parseNumber(document.getElementById('simValue').value);
   const targetJob = document.getElementById('simTargetJob').value;
@@ -800,9 +808,14 @@ function applySimulationToData() {
   }
 
   const desc = type === 'percent' ? `${val}%` : `${val} ج.م`;
-  if (!confirm(`هل أنت متأكد من تطبيق زيادة (${desc}) على ${targetJob === 'الكل' ? 'كافة الأعضاء' : targetJob}؟`)) {
-    return;
-  }
+  const confirmed = await showCustomConfirm({
+    title: 'تطبيق زيادة الميزانية',
+    message: `هل أنت متأكد من تطبيق زيادة (${desc}) على ${targetJob === 'الكل' ? 'كافة أعضاء هيئة التدريس' : targetJob}؟`,
+    confirmText: 'تطبيق الزيادة',
+    cancelText: 'تراجع',
+    isDanger: false
+  });
+  if (!confirmed) return;
 
   employees.forEach(item => {
     if (targetJob === 'الكل' || item.job === targetJob) {
@@ -1320,18 +1333,32 @@ function verifyPin() {
   }
 }
 
-function openPinSetupModal() {
+async function openPinSetupModal() {
   closeMenuDropdown();
   const currentPin = localStorage.getItem(PIN_KEY);
 
   if (currentPin) {
-    if (confirm('هل تريد إلغاء القفل السري للتطبيق؟')) {
+    const confirmed = await showCustomConfirm({
+      title: 'إلغاء القفل السري',
+      message: 'هل تريد إلغاء القفل السري للتطبيق وإزالة رمز الحماية؟',
+      confirmText: 'إلغاء القفل',
+      cancelText: 'إبقاء الرمز',
+      isDanger: true
+    });
+    if (confirmed) {
       localStorage.removeItem(PIN_KEY);
       initPinLock();
       showToast('تم إلغاء القفل السري بنجاح');
     }
   } else {
-    const newPin = prompt('أدخل رمز سري جديد من 4 أرقام:');
+    const newPin = await showCustomPrompt({
+      title: 'تعيين رمز سري جديد',
+      message: 'أدخل رمز سري مكوّن من 4 أرقام لحماية الكشف:',
+      placeholder: '••••',
+      inputType: 'password',
+      confirmText: 'تفعيل القفل',
+      cancelText: 'إلغاء'
+    });
     if (newPin && newPin.trim().length === 4 && /^\d{4}$/.test(newPin.trim())) {
       localStorage.setItem(PIN_KEY, newPin.trim());
       initPinLock();
@@ -1403,8 +1430,15 @@ function closeHistoryModal() {
   document.body.style.overflow = '';
 }
 
-function clearHistoryLog() {
-  if (confirm('هل تريد مسح سجل التعديلات بالكامل؟')) {
+async function clearHistoryLog() {
+  const confirmed = await showCustomConfirm({
+    title: 'مسح سجل التعديلات',
+    message: 'هل أنت متأكد من مسح سجل التعديلات والعمليات السابقة بالكامل؟',
+    confirmText: 'مسح السجل',
+    cancelText: 'إلغاء',
+    isDanger: true
+  });
+  if (confirmed) {
     localStorage.removeItem(HISTORY_KEY);
     openHistoryModal();
     showToast('تم مسح السجل');
@@ -1606,9 +1640,16 @@ function handleFileImport(e) {
   e.target.value = '';
 }
 
-function resetToDefault() {
+async function resetToDefault() {
   closeMenuDropdown();
-  if (confirm('هل تريد إعادة جلب البيانات الحديثة من شيت جوجل ومسح أي تعديلات محلية؟')) {
+  const confirmed = await showCustomConfirm({
+    title: 'استعادة بيانات الشيت الأصلية',
+    message: 'سيتم مسح أي تعديلات محلية تم حفظها وإعادة جلب أحدث بيانات مباشرة من شيت جوجل.',
+    confirmText: 'استعادة وجلب لايف',
+    cancelText: 'إلغاء',
+    isDanger: true
+  });
+  if (confirmed) {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(MODIFIED_KEY);
     fetchLiveFromGoogleSheet(true);
@@ -1846,3 +1887,119 @@ async function syncRecordToGoogleSheet(action, record) {
     showToast('تعذر الاتصال بـ Google Apps Script');
   }
 }
+
+
+// ========================
+// Custom Confirm & Prompt Dialogs
+// ========================
+let dialogResolve = null;
+
+function showCustomConfirm({ title, message, confirmText = 'تأكيد', cancelText = 'إلغاء', isDanger = false }) {
+  return new Promise((resolve) => {
+    dialogResolve = resolve;
+    const modal = document.getElementById('customDialogModal');
+    const titleEl = document.getElementById('dialogTitle');
+    const msgEl = document.getElementById('dialogMessage');
+    const inputWrap = document.getElementById('dialogInputWrap');
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    const cancelBtn = document.getElementById('dialogCancelBtn');
+    const iconBox = document.getElementById('dialogIconBox');
+    const iconSvg = document.getElementById('dialogIcon');
+
+    if (!modal) {
+      resolve(confirm(message));
+      return;
+    }
+
+    titleEl.innerText = title || 'تأكيد الإجراء';
+    msgEl.innerText = message || '';
+    inputWrap.style.display = 'none';
+    confirmBtn.innerText = confirmText;
+    cancelBtn.innerText = cancelText;
+
+    if (isDanger) {
+      confirmBtn.className = 'dialog-btn dialog-confirm-btn danger';
+      iconBox.className = 'custom-dialog-icon-box danger';
+      iconSvg.innerHTML = '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>';
+    } else {
+      confirmBtn.className = 'dialog-btn dialog-confirm-btn primary';
+      iconBox.className = 'custom-dialog-icon-box';
+      iconSvg.innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+    }
+
+    confirmBtn.onclick = () => closeCustomDialog(true);
+    cancelBtn.onclick = () => closeCustomDialog(false);
+
+    modal.classList.add('active');
+  });
+}
+
+function showCustomPrompt({ title, message, defaultValue = '', placeholder = '', inputType = 'text', confirmText = 'موافق', cancelText = 'إلغاء' }) {
+  return new Promise((resolve) => {
+    dialogResolve = resolve;
+    const modal = document.getElementById('customDialogModal');
+    const titleEl = document.getElementById('dialogTitle');
+    const msgEl = document.getElementById('dialogMessage');
+    const inputWrap = document.getElementById('dialogInputWrap');
+    const input = document.getElementById('dialogInput');
+    const confirmBtn = document.getElementById('dialogConfirmBtn');
+    const cancelBtn = document.getElementById('dialogCancelBtn');
+    const iconBox = document.getElementById('dialogIconBox');
+    const iconSvg = document.getElementById('dialogIcon');
+
+    if (!modal) {
+      resolve(prompt(message, defaultValue));
+      return;
+    }
+
+    titleEl.innerText = title || 'إدخال بيانات';
+    msgEl.innerText = message || '';
+    inputWrap.style.display = 'block';
+    input.type = inputType;
+    input.value = defaultValue;
+    input.placeholder = placeholder;
+    confirmBtn.innerText = confirmText;
+    cancelBtn.innerText = cancelText;
+
+    confirmBtn.className = 'dialog-btn dialog-confirm-btn primary';
+    iconBox.className = 'custom-dialog-icon-box';
+    iconSvg.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>';
+
+    confirmBtn.onclick = () => {
+      const val = input.value;
+      closeCustomDialog(val);
+    };
+    cancelBtn.onclick = () => closeCustomDialog(null);
+
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmBtn.click();
+      }
+    };
+
+    modal.classList.add('active');
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 120);
+  });
+}
+
+function closeCustomDialog(result) {
+  const modal = document.getElementById('customDialogModal');
+  if (modal) modal.classList.remove('active');
+  if (dialogResolve) {
+    dialogResolve(result);
+    dialogResolve = null;
+  }
+}
+
+// Global Keyboard Handler for Modals (ESC to close)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeMenuDropdown();
+    closeSortSheet();
+    closeCustomDialog(false);
+  }
+});
